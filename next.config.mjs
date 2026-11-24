@@ -10,11 +10,9 @@ const nextConfig = {
         protocol: "https",
         hostname: "assets.papermark.io",
       },
-      {
-        // user-shared documents and files
-        protocol: "https",
-        hostname: process.env.NEXT_PRIVATE_UPLOAD_DISTRIBUTION_HOST ?? "",
-      },
+      ...(process.env.NEXT_PRIVATE_UPLOAD_DISTRIBUTION_HOST
+        ? [{ protocol: "https", hostname: process.env.NEXT_PRIVATE_UPLOAD_DISTRIBUTION_HOST }]
+        : []),
       {
         // twitter img
         protocol: "https",
