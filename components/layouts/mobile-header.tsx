@@ -55,9 +55,7 @@ export function MobileHeader() {
           <Link
             href="/dashboard"
             className="text-xl font-bold tracking-tighter text-foreground"
-          >
-            Papermark
-          </Link>
+          >Folio Relay</Link>
         )}
 
         <DropdownMenu>

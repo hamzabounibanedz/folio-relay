@@ -13,7 +13,8 @@ const data = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.papermark.com"),
+  icons: { icon: "/brand-mark.svg" },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
   title: data.title,
   description: data.description,
   openGraph: {
@@ -35,7 +36,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: data.title,
     description: data.description,
-    creator: "@papermarkio",
     images: ["/_static/meta-image.png"],
   },
 };
