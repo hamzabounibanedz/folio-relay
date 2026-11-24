@@ -26,7 +26,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: false,
     }),
     LinkedInProvider({
       clientId: process.env.LINKEDIN_CLIENT_ID as string,
@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
           image: profile.picture ?? defaultImage,
         };
       },
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: false,
     }),
     EmailProvider({
       async sendVerificationRequest({ identifier, url }) {
@@ -61,14 +61,14 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-    PasskeyProvider({
+    ...(hanko ? [PasskeyProvider({
       tenant: hanko,
       async authorize({ userId }) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) return null;
         return user;
       },
-    }),
+    })] : []),
   ],
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -80,7 +80,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         // When working on localhost, the cookie domain must be omitted entirely (https://stackoverflow.com/a/1188145)
-        domain: VERCEL_DEPLOYMENT ? ".papermark.io" : undefined,
+        domain: undefined,
         secure: VERCEL_DEPLOYMENT,
       },
     },

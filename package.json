@@ -79,7 +79,7 @@
     "ms": "^2.1.3",
     "mupdf": "^0.1.3",
     "nanoid": "^5.0.7",
-    "next": "^14.2.2",
+    "next": "14.2.35",
     "next-auth": "^4.24.7",
     "next-mdx-remote": "^4.4.1",
     "next-plausible": "^3.12.0",

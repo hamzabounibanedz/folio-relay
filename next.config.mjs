@@ -75,6 +75,7 @@ const nextConfig = {
       "/api/mupdf/*": ["./node_modules/mupdf/lib/*.wasm"],
     },
     missingSuspenseWithCSRBailout: false,
+    cpus: 2,
   },
 };
 

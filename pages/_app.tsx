@@ -1,6 +1,6 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
-import { Inter } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,7 +14,7 @@ import { PostHogCustomProvider } from "@/components/providers/posthog-provider";
 import { EXCLUDED_PATHS } from "@/lib/constants";
 import { TriggerCustomProvider } from "@/components/providers/trigger-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = DM_Sans({ subsets: ["latin"] });
 
 export default function App({
   Component,
@@ -24,21 +24,21 @@ export default function App({
   return (
     <>
       <Head>
-        <title>Papermark | The Open Source DocSend Alternative</title>
+        <title>Folio Relay | Document sharing</title>
         <meta name="theme-color" content="#000000" />
         <meta
           name="description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="description"
         />
         <meta
           property="og:title"
-          content="Papermark | The Open Source DocSend Alternative"
+          content="Folio Relay | Document sharing"
           key="og-title"
         />
         <meta
           property="og:description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="og-description"
         />
         <meta
@@ -58,7 +58,7 @@ export default function App({
         <meta name="twitter:title" content="Papermark" key="tw-title" />
         <meta
           name="twitter:description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="tw-description"
         />
         <meta
