@@ -1,10 +1,5 @@
-import Link from "next/link";
-import { useRouter } from "next/router";
-
 import React, { useMemo } from "react";
-
-import { useFolderWithParents } from "@/lib/swr/use-folders";
-
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,6 +8,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "../ui/breadcrumb";
+import { useRouter } from "next/router";
+import { useFolderWithParents } from "@/lib/swr/use-folders";
 
 function BreadcrumbComponentBase({ name }: { name: string[] }) {
   const { folders: folderNames } = useFolderWithParents({ name });

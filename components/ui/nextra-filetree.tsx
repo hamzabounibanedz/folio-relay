@@ -1,39 +1,25 @@
-"use client";
-
 /**
  * This component is based on the nextra's filetree component from @shuding
  * https://github.com/shuding/nextra/blob/main/packages/nextra/src/components/file-tree.tsx
  *
  */
-import React, {
-  CSSProperties,
-  createContext,
-  memo,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import type { ReactElement, ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+import { createContext, memo, useCallback, useContext, useState } from "react";
+import type { ReactElement, ReactNode } from "react";
+import ChevronDown from "../shared/icons/chevron-down";
+import ChevronRight from "../shared/icons/chevron-right";
 import {
-  ChevronRightIcon,
   FileIcon,
+  FolderClosedIcon,
   FolderIcon,
   FolderOpenIcon,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-
 const ctx = createContext(0);
-const prefersLightTextCtx = createContext(false);
 
 function useIndent() {
   return useContext(ctx);
-}
-
-export function usePrefersLightText() {
-  return useContext(prefersLightTextCtx);
 }
 
 interface FolderProps {
@@ -44,9 +30,7 @@ interface FolderProps {
   active?: boolean;
   childActive?: boolean;
   onToggle?: (open: boolean) => void;
-  className?: string;
   children: ReactNode;
-  disable?: boolean;
 }
 
 interface FileProps {
@@ -56,24 +40,11 @@ interface FileProps {
   onToggle?: (active: boolean) => void;
 }
 
-function Tree({
-  children,
-  prefersLightText,
-  style,
-}: {
-  children: ReactNode;
-  prefersLightText?: boolean;
-  style?: CSSProperties;
-}): ReactElement {
+function Tree({ children }: { children: ReactNode }): ReactElement {
   return (
-    <prefersLightTextCtx.Provider value={prefersLightText ?? false}>
-      <div
-        className={cn("nextra-filetree !mt-0 w-full select-none text-sm")}
-        style={style}
-      >
-        <div className="block space-y-1">{children}</div>
-      </div>
-    </prefersLightTextCtx.Provider>
+    <div className={cn("nextra-filetree w-full select-none text-sm !mt-0")}>
+      <div className="block rounded-lg">{children}</div>
+    </div>
   );
 }
 
@@ -82,7 +53,7 @@ function Ident(): ReactElement {
   return (
     <>
       {Array.from({ length }, (_, i) => (
-        <span className="w-5 shrink-0" key={i} />
+        <span className="w-5" key={i} />
       ))}
     </>
   );
@@ -98,92 +69,62 @@ const Folder = memo<FolderProps>(
     childActive,
     defaultOpen = false,
     onToggle,
-    className,
-    disable,
   }) => {
     const indent = useIndent();
-    const prefersLightText = usePrefersLightText();
-    const [isOpen, setIsOpen] = useState(defaultOpen || childActive);
+    const [isOpen, setIsOpen] = useState(defaultOpen || active || childActive);
 
-    useEffect(() => {
-      if (childActive) {
-        setIsOpen(true);
-      }
-    }, [childActive]);
-
-    const handleFolderClick = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onToggle?.(!isOpen);
-      },
-      [isOpen, onToggle],
-    );
-
-    const handleChevronClick = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsOpen(!isOpen);
-      },
-      [isOpen],
-    );
+    const toggle = useCallback(() => {
+      onToggle?.(!isOpen);
+      setIsOpen(!isOpen);
+    }, [isOpen, onToggle]);
 
     const isFolderOpen = open === undefined ? isOpen : open;
-    const hasChildren = React.Children.count(children) > 0;
 
     return (
-      <li
-        className={cn(
-          "flex w-full min-w-0 list-none flex-col",
-          hasChildren && "space-y-1",
-        )}
-      >
-        <div
+      <li className="flex list-none flex-col w-full">
+        <button
+          onClick={toggle}
           title={name}
           className={cn(
-            "flex w-full min-w-0 cursor-pointer items-center rounded-md",
-            "duration-100",
-            prefersLightText
-              ? "text-[var(--viewer-text)] hover:bg-[var(--viewer-control-bg)]"
-              : "text-foreground hover:bg-gray-100 hover:dark:bg-muted",
+            "inline-flex cursor-pointer items-center w-full",
+            "text-foreground hover:bg-gray-200 hover:dark:bg-muted duration-100 rounded-md",
             "px-3 py-1.5 leading-6",
-            active &&
-              (prefersLightText
-                ? "bg-[var(--viewer-panel-active)] font-semibold"
-                : "bg-gray-100 font-semibold dark:bg-muted"),
-            disable && "pointer-events-none cursor-auto opacity-50",
-            className,
+            active && "bg-gray-200 dark:bg-muted font-semibold",
           )}
-          onClick={handleFolderClick}
         >
           <Ident />
-          <div
-            className="-m-1 -ml-2 flex h-full shrink-0 items-center justify-center p-2"
-            onClick={handleChevronClick}
-          >
-            <ChevronRightIcon
-              className={cn(
-                "chevron h-4 w-4 shrink-0 transition-transform duration-150",
-                isFolderOpen && "rotate-90",
-              )}
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 shrink-0 transition-transform duration-150 chevron mr-1",
+              isFolderOpen && "rotate-90",
+            )}
+          />
+          {/* <svg width="2em" height="1em" viewBox="0 0 24 24">
+            <path
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d={
+                isFolderOpen
+                  ? "M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v1M5 19h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2Z"
+                  : "M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z"
+              }
             />
-          </div>
+          </svg> */}
           {isFolderOpen ? (
             <FolderOpenIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
           ) : (
             <FolderIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
           )}
           <span
-            className={cn(
-              "ml-2 min-w-0 flex-1",
-              // A label does its own truncation; clipping here would cut off whatever
-              // it places after the name.
-              label ? "flex items-center gap-2" : "truncate whitespace-nowrap",
-            )}
-            title={name}
+            className="ml-2 w-fit truncate"
+            title={(label ?? name) as string}
           >
             {label ?? name}
           </span>
-        </div>
+        </button>
         {isFolderOpen && (
           <ul>
             <ctx.Provider value={indent + 1}>{children}</ctx.Provider>
@@ -196,39 +137,36 @@ const Folder = memo<FolderProps>(
 Folder.displayName = "Folder";
 
 const File = memo<FileProps>(({ label, name, active, onToggle }) => {
-  const prefersLightText = usePrefersLightText();
   const toggle = useCallback(() => {
     onToggle?.(!active);
-  }, [active, onToggle]);
+  }, [onToggle]);
 
   return (
     <li
       className={cn(
-        "flex min-w-0 list-none rounded-md",
-        "duration-100",
-        prefersLightText
-          ? "text-[var(--viewer-muted-text)] hover:bg-[var(--viewer-control-bg)]"
-          : "text-foreground hover:bg-gray-100 hover:dark:bg-muted",
+        "flex list-none",
+        "text-foreground hover:bg-gray-200 hover:dark:bg-muted duration-100 rounded-md",
         "px-3 py-1.5 leading-6",
-        active &&
-          (prefersLightText
-            ? "bg-[var(--viewer-panel-active)] font-semibold text-[var(--viewer-text)]"
-            : "bg-gray-100 font-semibold dark:bg-muted"),
+        active && "bg-gray-200 dark:bg-muted font-semibold",
       )}
     >
       <span
-        className="ml-5 flex w-full min-w-0 cursor-default items-center"
+        className="inline-flex cursor-default items-center ml-5"
         onClick={toggle}
       >
         <Ident />
+        {/* <svg width="1em" height="1em" viewBox="0 0 24 24">
+        <path
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
+        />
+      </svg> */}
         <FileIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <span
-          className={cn(
-            "ml-2 min-w-0 flex-1",
-            label ? "flex items-center gap-2" : "truncate whitespace-nowrap",
-          )}
-          title={name}
-        >
+        <span className="ml-2 w-fit truncate" title={(label ?? name) as string}>
           {label ?? name}
         </span>
       </span>

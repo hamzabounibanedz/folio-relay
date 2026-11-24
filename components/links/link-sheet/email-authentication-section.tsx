@@ -1,26 +1,20 @@
-import { useEffect, useState } from "react";
-
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { DEFAULT_LINK_TYPE } from ".";
-import LinkItem from "./link-item";
-import { LinkUpgradeOptions } from "./link-options";
 
 export default function EmailAuthenticationSection({
   data,
   setData,
-  isAllowed,
+  hasFreePlan,
   handleUpgradeStateChange,
 }: {
   data: DEFAULT_LINK_TYPE;
-  setData: React.Dispatch<React.SetStateAction<DEFAULT_LINK_TYPE>>;
-  isAllowed: boolean;
-  handleUpgradeStateChange: ({
-    state,
-    trigger,
-    plan,
-    highlightItem,
-  }: LinkUpgradeOptions) => void;
+  setData: Dispatch<SetStateAction<DEFAULT_LINK_TYPE>>;
+  hasFreePlan: boolean;
+  handleUpgradeStateChange: (state: boolean, trigger: string) => void;
 }) {
-  const { emailProtected, emailAuthenticated, enableConversation } = data;
+  const { emailProtected, emailAuthenticated } = data;
   const [enabled, setEnabled] = useState<boolean>(emailAuthenticated);
 
   useEffect(() => {
@@ -33,32 +27,55 @@ export default function EmailAuthenticationSection({
       ...data,
       emailProtected: updatedEmailAuthentication ? true : emailProtected,
       emailAuthenticated: updatedEmailAuthentication,
-      enableConversation: updatedEmailAuthentication
-        ? enableConversation
-        : false,
+      allowList: updatedEmailAuthentication ? data.allowList : [],
+      denyList: updatedEmailAuthentication ? data.denyList : [],
     });
     setEnabled(updatedEmailAuthentication);
   };
 
   return (
     <div className="pb-5">
-      <LinkItem
-        title="Require email verification"
-        link="https://www.papermark.com/help/article/require-email-verification"
-        tooltipContent="Users must verify their email before accessing the content."
-        enabled={enabled}
-        action={handleEnableAuthentication}
-        isAllowed={isAllowed}
-        requiredPlan="business"
-        upgradeAction={() =>
-          handleUpgradeStateChange({
-            state: true,
-            trigger: "link_sheet_email_auth_section",
-            plan: "Business",
-            highlightItem: ["email-verify"],
-          })
-        }
-      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between space-x-2">
+          <h2
+            className={cn(
+              "text-sm font-medium leading-6",
+              enabled ? "text-foreground" : "text-muted-foreground",
+              hasFreePlan ? "cursor-pointer" : undefined,
+            )}
+            onClick={
+              hasFreePlan
+                ? () =>
+                    handleUpgradeStateChange(
+                      true,
+                      "link_sheet_email_auth_section",
+                    )
+                : undefined
+            }
+          >
+            Require email verification
+            {hasFreePlan && (
+              <span className="bg-background text-foreground ring-1 ring-gray-800 dark:ring-gray-500 rounded-full px-2 py-0.5 text-xs ml-2">
+                Pro
+              </span>
+            )}
+          </h2>
+        </div>
+        <Switch
+          checked={enabled}
+          onClick={
+            hasFreePlan
+              ? () =>
+                  handleUpgradeStateChange(
+                    true,
+                    "link_sheet_email_auth_section",
+                  )
+              : undefined
+          }
+          className={hasFreePlan ? "opacity-50" : undefined}
+          onCheckedChange={hasFreePlan ? undefined : handleEnableAuthentication}
+        />
+      </div>
     </div>
   );
 }

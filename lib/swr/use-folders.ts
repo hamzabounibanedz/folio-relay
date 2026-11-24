@@ -1,6 +1,5 @@
 import { useTeam } from "@/context/team-context";
 import useSWR from "swr";
-
 import { fetcher } from "../utils";
 
 type FolderWithParents = {
@@ -20,7 +19,7 @@ export function useFolderWithParents({ name }: { name: string[] }) {
 
   const { data: folders, error } = useSWR<{ name: string; path: string }[]>(
     teamInfo?.currentTeam?.id &&
-    name && !!name.length &&
+      name &&
       `/api/teams/${teamInfo?.currentTeam?.id}/folders/parents/${name.join("/")}`,
     fetcher,
     {

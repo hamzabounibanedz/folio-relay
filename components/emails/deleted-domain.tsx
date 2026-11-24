@@ -1,22 +1,20 @@
 import React from "react";
-
 import {
   Body,
   Button,
   Container,
   Head,
-  Hr,
+  Heading,
   Html,
   Preview,
   Section,
-  Tailwind,
   Text,
-} from "react-email";
-
-import { Footer } from "./shared/footer";
+  Tailwind,
+  Hr,
+} from "@react-email/components";
 
 export default function DomainDeleted({
-  domain = "papermark.com",
+  domain = "papermark.io",
 }: {
   domain: string;
 }) {
@@ -25,14 +23,14 @@ export default function DomainDeleted({
       <Head />
       <Preview>Domain Deleted</Preview>
       <Tailwind>
-        <Body className="mx-auto my-auto bg-white font-sans">
-          <Container className="mx-auto my-10 w-[465px] p-5">
-            <Text className="mx-0 mb-8 mt-4 p-0 text-center text-2xl font-normal">
+        <Body className="bg-white my-auto mx-auto font-sans">
+          <Container className="my-10 mx-auto p-5 w-[465px]">
+            <Heading className="text-2xl font-normal text-center p-0 mt-4 mb-8 mx-0">
               <span className="font-bold tracking-tighter">Papermark</span>
-            </Text>
-            <Text className="mx-0 mb-8 mt-4 p-0 text-center text-xl">
+            </Heading>
+            <Heading className="text-xl font-seminbold text-center p-0 mt-4 mb-8 mx-0">
               Domain Deleted
-            </Text>
+            </Heading>
             <Text className="text-sm leading-6 text-black">
               Your domain <code className="text-purple-600">{domain}</code> for
               your Papermark account has been invalid for 30 days. As a result,
@@ -44,8 +42,8 @@ export default function DomainDeleted({
             </Text>
             <Section className="my-8 text-center">
               <Button
-                className="rounded bg-black text-center text-xs font-semibold text-white no-underline"
-                href={`https://app.papermark.com/settings/domains`}
+                className="bg-black rounded text-white text-xs font-semibold no-underline text-center"
+                href={`https://www.papermark.io/settings/domains`}
                 style={{ padding: "12px 20px" }}
               >
                 Set up your custom domain
@@ -55,7 +53,23 @@ export default function DomainDeleted({
               If you did not want to keep using this domain on Papermark anyway,
               you can simply ignore this email.
             </Text>
-            <Footer />
+            <Hr />
+            <Section className="mt-8 text-gray-400">
+              <Text className="text-xs">
+                © {new Date().getFullYear()}{" "}
+                <a
+                  href="https://www.papermark.io"
+                  className="no-underline text-gray-400 hover:text-gray-400 visited:text-gray-400"
+                  target="_blank"
+                >
+                  papermark.io
+                </a>
+              </Text>
+              <Text className="text-xs">
+                If you have any feedback or questions about this email, simply
+                reply to it. I&apos;d love to hear from you!
+              </Text>
+            </Section>
           </Container>
         </Body>
       </Tailwind>

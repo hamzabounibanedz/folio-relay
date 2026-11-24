@@ -1,16 +1,13 @@
-import { useTeam } from "@/context/team-context";
-import { Domain } from "@prisma/client";
 import useSWR from "swr";
-
 import { fetcher } from "@/lib/utils";
+import { Domain } from "@prisma/client";
+import { useTeam } from "@/context/team-context";
 
-export function useDomains({ enabled = false }: { enabled?: boolean } = {}) {
+export function useDomains() {
   const teamInfo = useTeam();
 
   const { data: domains, error } = useSWR<Domain[]>(
-    enabled && teamInfo?.currentTeam?.id
-      ? `/api/teams/${teamInfo.currentTeam.id}/domains`
-      : null,
+    `/api/teams/${teamInfo?.currentTeam?.id}/domains`,
     fetcher,
     {
       dedupingInterval: 60000,

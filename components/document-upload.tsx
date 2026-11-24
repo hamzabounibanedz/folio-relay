@@ -1,124 +1,61 @@
-import { useRouter } from "next/router";
-
-import { useMemo } from "react";
-
-import { UploadIcon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { bytesToSize } from "@/lib/utils";
 import { toast } from "sonner";
 
 import {
-  FREE_PLAN_ACCEPTED_FILE_TYPES,
-  FULL_PLAN_ACCEPTED_FILE_TYPES,
-  HTML_ACCEPTED_FILE_TYPES,
-  SUPPORTED_DOCUMENT_MIME_TYPES,
-} from "@/lib/constants";
-import { useFeatureFlags } from "@/lib/hooks/use-feature-flags";
+  Upload as ArrowUpTrayIcon,
+  File as DocumentIcon,
+  FileText as DocumentTextIcon,
+  Presentation as PresentationChartBarIcon,
+  Image as PhotoIcon,
+} from "lucide-react";
+import { useTeam } from "@/context/team-context";
 import { usePlan } from "@/lib/swr/use-billing";
-import useLimits from "@/lib/swr/use-limits";
-import { bytesToSize } from "@/lib/utils";
-import { isHtmlFile } from "@/lib/utils/get-content-type";
-import { fileIcon } from "@/lib/utils/get-file-icon";
-import {
-  getFileSizeLimit,
-  getFileSizeLimits,
-} from "@/lib/utils/get-file-size-limits";
 import { getPagesCount } from "@/lib/utils/get-page-number-count";
+
+function fileIcon(fileType: string) {
+  switch (fileType) {
+    case "application/pdf":
+      return <DocumentTextIcon className="h-6 w-6 mx-auto" />;
+    case "image/png":
+    case "image/jpeg":
+    case "image/gif":
+    case "image/jpg":
+      return <PhotoIcon className="h-6 w-6 mx-auto" />;
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    case "application/vnd.ms-powerpoint":
+    case "application/msword":
+      return <PresentationChartBarIcon className="h-6 w-6 mx-auto" />;
+    default:
+      return <DocumentIcon className="h-6 w-6 mx-auto" />;
+  }
+}
 
 export default function DocumentUpload({
   currentFile,
   setCurrentFile,
-  pdfOnly = false,
-  maxSizeBytes,
-  maxSizeErrorMessage,
 }: {
   currentFile: File | null;
   setCurrentFile: React.Dispatch<React.SetStateAction<File | null>>;
-  pdfOnly?: boolean;
-  maxSizeBytes?: number;
-  maxSizeErrorMessage?: string;
 }) {
-  const router = useRouter();
-  const { theme, systemTheme } = useTheme();
-  const isLight =
-    theme === "light" || (theme === "system" && systemTheme === "light");
-  const { isFree, isTrial } = usePlan();
-  const { limits } = useLimits();
-  const { isFeatureEnabled } = useFeatureFlags();
-  const htmlDocumentsEnabled = isFeatureEnabled("htmlDocuments");
-
-  const fullPlanAcceptedFileTypes = useMemo(
-    () => ({
-      ...FULL_PLAN_ACCEPTED_FILE_TYPES,
-      ...(htmlDocumentsEnabled ? HTML_ACCEPTED_FILE_TYPES : {}),
-    }),
-    [htmlDocumentsEnabled],
-  );
-
-  const fileSizeLimits = useMemo(
-    () =>
-      getFileSizeLimits({
-        limits,
-        isFree,
-        isTrial,
-      }),
-    [limits, isFree, isTrial],
-  );
-
-  // When an explicit byte limit is provided (e.g. NDA signing template), use it instead of the plan limit.
-  const maxSizeMB =
-    typeof maxSizeBytes === "number"
-      ? Math.floor(maxSizeBytes / (1024 * 1024))
-      : undefined;
-
+  const { plan, loading } = usePlan();
+  const maxSize = plan?.plan === "pro" ? 100 : 30;
   const { getRootProps, getInputProps } = useDropzone({
-    accept: pdfOnly
-      ? { "application/pdf": [".pdf"] }
-      : isFree && !isTrial
-        ? FREE_PLAN_ACCEPTED_FILE_TYPES
-        : fullPlanAcceptedFileTypes,
+    accept: {
+      "application/pdf": [], // ".pdf"
+    },
     multiple: false,
+    maxSize: maxSize * 1024 * 1024, // 30 MB
     onDropAccepted: (acceptedFiles) => {
-      if (acceptedFiles.length === 0) {
-        return;
-      }
       const file = acceptedFiles[0];
-      const fileType = file.type;
-      const fileSizeLimitMB = getFileSizeLimit(fileType, fileSizeLimits); // in MB
-      const limitMB = maxSizeMB ?? fileSizeLimitMB; // displayed limit
-      const fileSizeLimit = maxSizeBytes ?? fileSizeLimitMB * 1024 * 1024; // in bytes
-
-      if (file.size > fileSizeLimit) {
-        const message =
-          maxSizeErrorMessage ||
-          `File size too big for ${fileType} (max. ${limitMB} MB)`;
-        if (!maxSizeErrorMessage && isFree && !isTrial) {
-          toast.error(message, {
-            description: "Upgrade to a paid plan to increase the limit",
-            action: {
-              label: "Upgrade",
-              onClick: () => router.push("/settings/billing/upgrade"),
-            },
-            duration: 10000,
-          });
-        } else {
-          toast.error(message);
-        }
-        return;
-      }
-
-      if (file.type !== "application/pdf") {
-        setCurrentFile(file);
-        return;
-      }
       file
         .arrayBuffer()
         .then((buffer) => {
           getPagesCount(buffer).then((numPages) => {
-            if (numPages > fileSizeLimits.maxPages) {
-              toast.error(
-                `File has too many pages (max. ${fileSizeLimits.maxPages})`,
-              );
+            if (numPages > 100) {
+              toast.error("File has too many pages (max. 100)");
             } else {
               setCurrentFile(file);
             }
@@ -130,43 +67,17 @@ export default function DocumentUpload({
         });
     },
     onDropRejected: (fileRejections) => {
-      const { errors, file } = fileRejections[0];
+      const { errors } = fileRejections[0];
       let message;
       if (errors[0].code === "file-too-large") {
-        const limitMB = maxSizeMB ?? getFileSizeLimit(file.type, fileSizeLimits);
-        message =
-          maxSizeErrorMessage || `File size too big (max. ${limitMB} MB)`;
-        if (!maxSizeErrorMessage && isFree && !isTrial) {
-          toast.error(message, {
-            description: "Upgrade to a paid plan to increase the limit",
-            action: {
-              label: "Upgrade",
-              onClick: () => router.push("/settings/billing/upgrade"),
-            },
-            duration: 10000,
-          });
-          return;
-        }
+        message = `File size too big (max. ${maxSize} MB)`;
       } else if (errors[0].code === "file-invalid-type") {
-        const isSupported = SUPPORTED_DOCUMENT_MIME_TYPES.includes(file.type);
-        message = "File type not supported";
-        if (isFree && !isTrial && isSupported) {
-          toast.error(`${message} on free plan`, {
-            description: `Upgrade to a paid plan to upload ${file.type} files`,
-            action: {
-              label: "Upgrade",
-              onClick: () => router.push("/settings/billing/upgrade"),
-            },
-            duration: 10000,
-          });
-          return;
-        }
+        message = "File type not supported (.pdf only)";
       } else {
         message = errors[0].message;
       }
       toast.error(message);
     },
-    maxSize: maxSizeBytes,
   });
 
   const imageBlobUrl = useMemo(
@@ -178,13 +89,13 @@ export default function DocumentUpload({
     <div className="col-span-full">
       <div
         {...getRootProps()}
-        className="group relative block cursor-pointer font-semibold text-foreground hover:bg-gray-100 hover:text-gray-900 hover:dark:bg-gray-900 hover:dark:text-gray-500"
+        className="relative cursor-pointer font-semibold text-foreground hover:text-gray-900 hover:bg-gray-100 hover:dark:text-gray-500 hover:dark:bg-gray-900 block group"
       >
         <input {...getInputProps()} name="file" className="sr-only" />
-        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-black/25 px-6 py-10 dark:border-white/25 md:min-w-full">
+        <div className="flex justify-center rounded-lg border border-dashed border-black/25 dark:border-white/25 px-6 py-10 min-h-[200px] md:min-w-full items-center">
           {currentFile ? (
             <div
-              className="pointer-events-none absolute inset-0 opacity-10 transition-opacity group-hover:opacity-5"
+              className="absolute inset-0 opacity-10 pointer-events-none group-hover:opacity-5 transition-opacity"
               style={{
                 backgroundImage: `url(${imageBlobUrl})`,
                 backgroundPosition: "center",
@@ -192,26 +103,15 @@ export default function DocumentUpload({
               }}
             />
           ) : null}
-
-          <div className="max-w-md text-center">
+          <div className="text-center">
             {currentFile ? (
-              <div className="flex flex-col items-center text-foreground sm:flex-row sm:space-x-2">
-                <div>
-                  {fileIcon({
-                    fileType: isHtmlFile({
-                      name: currentFile.name,
-                      contentType: currentFile.type,
-                    })
-                      ? "html"
-                      : currentFile.type,
-                    isLight,
-                  })}
-                </div>
-                <p className="max-w-md truncate">{currentFile.name}</p>
+              <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-x-2 text-foreground">
+                <div>{fileIcon(currentFile.type)}</div>
+                <p>{currentFile.name}</p>
                 <p className="text-gray-500">{bytesToSize(currentFile.size)}</p>
               </div>
             ) : (
-              <UploadIcon
+              <ArrowUpTrayIcon
                 className="mx-auto h-10 w-10 text-gray-500"
                 aria-hidden="true"
               />
@@ -225,11 +125,7 @@ export default function DocumentUpload({
             <p className="text-xs leading-5 text-gray-500">
               {currentFile
                 ? "Replace file?"
-                : pdfOnly
-                  ? `Only *.pdf`
-                  : isFree && !isTrial
-                    ? `Only *.pdf, *.xls, *.xlsx, *.csv, *.tsv, *.ods, *.png, *.jpeg, *.jpg`
-                    : `Only *.pdf, *.pptx, *.docx, *.xlsx, *.xls, *.xlsm, *.csv, *.tsv, *.ods, *.ppt, *.odp, *.doc, *.odt, *.rtf, *.txt, *.md, *.dwg, *.dxf, *.png, *.jpg, *.jpeg, *.mp4, *.mov, *.avi, *.webm, *.ogg, *.log${htmlDocumentsEnabled ? ", *.html, *.htm" : ""}`}
+                : `Only *.pdf & ${maxSize} MB limit`}
             </p>
           </div>
         </div>

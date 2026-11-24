@@ -1,126 +1,81 @@
 import React from "react";
-
 import {
   Body,
   Button,
   Container,
   Head,
-  Hr,
+  Heading,
   Html,
-  Link,
   Preview,
   Section,
-  Tailwind,
   Text,
-} from "react-email";
-
-import { Footer } from "./shared/footer";
+  Tailwind,
+  Link,
+  Hr,
+} from "@react-email/components";
 
 interface UpgradePlanEmailProps {
   name: string | null | undefined;
-  planType: string;
 }
 
-const UpgradePlanEmail = ({
-  name,
-  planType = "datarooms-plus",
-}: UpgradePlanEmailProps) => {
+const UpgradePlanEmail = ({ name }: UpgradePlanEmailProps) => {
   const previewText = `The document sharing infrastructure for the modern web`;
-
-  const PLAN_TYPE_MAP = {
-    pro: "Pro",
-    business: "Business",
-    datarooms: "Data Rooms",
-    "datarooms-plus": "Data Rooms Plus",
-    "datarooms-premium": "Data Rooms Premium",
-    "datarooms-unlimited": "Data Rooms Unlimited",
-  };
-
-  const planTypeText = PLAN_TYPE_MAP[planType as keyof typeof PLAN_TYPE_MAP];
-  const features: any = {
-    pro: [
-      "Remove Papermark branding",
-      "Custom logo, colors & accents",
-      "Unlimited link views",
-      "Folder organization",
-      "1 team member",
-    ],
-    business: [
-      "Custom domains on document links",
-      "Unlimited data rooms for multi-file sharing",
-      "Advanced access controls",
-      "3 team members",
-    ],
-    datarooms: [
-      "Custom domains on data room links",
-      "Unlimited data rooms",
-      "Unlimited document uploads",
-      "3 team members",
-    ],
-    "datarooms-plus": [
-      "Custom domains on data room links",
-      "Unlimited data rooms",
-      "Q&A module",
-      "5 team members",
-    ],
-    "datarooms-premium": [
-      "Multiple teams (up to 5 teams)",
-      "Unlimited encrypted storage",
-      "No file size limit",
-      "10 team members",
-    ],
-    "datarooms-unlimited": [
-      "Unlimited team members",
-      "Unlimited encrypted storage",
-      "Unlimited data rooms",
-      "Custom SLA & dedicated success team",
-    ],
-  };
-
-  const planFeatures = features[planType];
 
   return (
     <Html>
       <Head />
       <Preview>{previewText}</Preview>
       <Tailwind>
-        <Body className="mx-auto my-auto bg-white font-sans">
-          <Container className="mx-auto my-10 w-[465px] p-5">
-            <Text className="mx-0 mb-8 mt-4 p-0 text-center text-2xl font-normal">
+        <Body className="bg-white my-auto mx-auto font-sans">
+          <Container className="my-10 mx-auto p-5 w-[465px]">
+            <Heading className="text-2xl font-normal text-center p-0 mt-4 mb-8 mx-0">
               <span className="font-bold tracking-tighter">Papermark</span>
-            </Text>
-            <Text className="mx-0 mb-8 mt-4 p-0 text-center text-xl">
-              Thanks for upgrading to Papermark {planTypeText}!
-            </Text>
+            </Heading>
+            <Heading className="text-xl font-seminbold text-center p-0 mt-4 mb-8 mx-0">
+              Thanks for for upgrading to Papermark Pro!
+            </Heading>
             <Text className="text-sm leading-6 text-black">
               Hey{name && ` ${name}`}!
             </Text>
             <Text className="text-sm">
-              Marc is here. I wanted to personally reach out to thank you for
-              upgrading to Papermark {planTypeText}!
+              My name is Marc, and I&apos;m the creator of Papermark. I wanted
+              to personally reach out to thank you for upgrading to Papermark
+              Pro!
             </Text>
-
             <Text className="text-sm leading-6 text-black">
-              On the {planTypeText} plan, you now have access to:
+              As you might already know, we are a bootstrapped and{" "}
+              <Link
+                href="https://github.com/mfts/papermark"
+                target="_blank"
+                className="font-medium text-emerald-500 no-underline"
+              >
+                open-source
+              </Link>{" "}
+              business. Your support means the world to us and helps us continue
+              to build and improve Papermark.
             </Text>
-            {planFeatures?.map(
-              (feature: string, index: number) => (
-                <Text key={index} className="ml-1 text-sm leading-4 text-black">
-                  ◆ {feature}
-                </Text>
-              ),
-              [],
-            )}
-            <Section className="mb-[32px] mt-[32px] text-center">
+            <Text className="text-sm leading-6 text-black">
+              On the Pro plan, you now have access to:
+            </Text>
+            <Text className="ml-1 text-sm leading-4 text-black">
+              ◆ Custom domains and white-label branding
+            </Text>
+            <Text className="ml-1 text-sm leading-4 text-black">
+              ◆ Unlimited link views
+            </Text>
+            <Text className="ml-1 text-sm leading-4 text-black">
+              ◆ Unlimited document uploads
+            </Text>
+            <Text className="ml-1 text-sm leading-4 text-black">
+              ◆ Invite your team members
+            </Text>
+            <Section className="text-center mt-[32px] mb-[32px]">
               <Button
-                className="rounded bg-black text-center text-xs font-semibold text-white no-underline"
-                href={`${process.env.NEXT_PUBLIC_BASE_URL}/${
-                  planTypeText.includes("datarooms") ? "datarooms" : "documents"
-                }`}
+                className="bg-black rounded text-white text-xs font-semibold no-underline text-center"
+                href={`${process.env.NEXT_PUBLIC_BASE_URL}/settings/domains`}
                 style={{ padding: "12px 20px" }}
               >
-                Share your{" "}
-                {planType.includes("datarooms") ? "data rooms" : "documents"}
+                Set up your custom domain
               </Button>
             </Section>
             <Section>
@@ -130,7 +85,23 @@ const UpgradePlanEmail = ({
               </Text>
               <Text className="text-sm text-gray-400">Marc from Papermark</Text>
             </Section>
-            <Footer />
+            <Hr />
+            <Section className="mt-8 text-gray-400">
+              <Text className="text-xs">
+                © {new Date().getFullYear()}{" "}
+                <a
+                  href="https://www.papermark.io"
+                  className="no-underline text-gray-400 hover:text-gray-400 visited:text-gray-400"
+                  target="_blank"
+                >
+                  papermark.io
+                </a>
+              </Text>
+              <Text className="text-xs">
+                If you have any feedback or questions about this email, simply
+                reply to it. I&apos;d love to hear from you!
+              </Text>
+            </Section>
           </Container>
         </Body>
       </Tailwind>

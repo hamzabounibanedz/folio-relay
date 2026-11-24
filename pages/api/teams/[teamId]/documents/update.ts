@@ -1,16 +1,15 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth/next";
-
-import { errorhandler } from "@/lib/errorHandler";
 import prisma from "@/lib/prisma";
+import { authOptions } from "../../../auth/[...nextauth]";
 import { CustomUser } from "@/lib/types";
-import { log } from "@/lib/utils";
+import { getExtension, log } from "@/lib/utils";
+import { getTeamWithUsersAndDocument } from "@/lib/team/helper";
+import { errorhandler } from "@/lib/errorHandler";
 
 export default async function handle(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ) {
   if (req.method === "POST") {
     // POST /api/teams/:teamId/documents/update
@@ -28,30 +27,11 @@ export default async function handle(
     const userId = (session.user as CustomUser).id;
 
     try {
-      const teamAccess = await prisma.userTeam.findUnique({
-        where: {
-          userId_teamId: {
-            userId,
-            teamId,
-          },
-        },
+      await getTeamWithUsersAndDocument({
+        teamId,
+        userId,
+        docId: documentId,
       });
-
-      if (!teamAccess) {
-        return res.status(401).end("Unauthorized");
-      }
-
-      const document = await prisma.document.findUnique({
-        where: {
-          id: documentId,
-          teamId,
-        },
-        select: { id: true },
-      });
-
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
 
       // Save data to the database
       await prisma.document.update({
@@ -69,10 +49,7 @@ export default async function handle(
 
       return res.status(201).json({ message: "Document updated successfully" });
     } catch (error) {
-      log({
-        message: `Failed to update document: _${documentId}_. \n\n ${error} \n\n*Metadata*: \`{teamId: ${teamId}, userId: ${userId}}\``,
-        type: "error",
-      });
+      log({message: `Failed to update document: _${documentId}_. \n\n ${error} \n\n*Metadata*: \`{teamId: ${teamId}, userId: ${userId}}\``, type: "error"});
       errorhandler(error, res);
     }
   } else {

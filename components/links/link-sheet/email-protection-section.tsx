@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { DEFAULT_LINK_TYPE } from ".";
-import LinkItem from "./link-item";
 
 export default function EmailProtectionSection({
   data,
   setData,
 }: {
   data: DEFAULT_LINK_TYPE;
-  setData: React.Dispatch<React.SetStateAction<DEFAULT_LINK_TYPE>>;
+  setData: Dispatch<SetStateAction<DEFAULT_LINK_TYPE>>;
 }) {
   const { emailProtected } = data;
   const [enabled, setEnabled] = useState<boolean>(emailProtected);
@@ -23,23 +23,25 @@ export default function EmailProtectionSection({
       ...data,
       emailProtected: updatedEmailProtection,
       emailAuthenticated: !updatedEmailProtection && false,
-      enableConversation: !updatedEmailProtection && false,
-      enableAgreement: !updatedEmailProtection && false,
-      allowList: updatedEmailProtection ? data.allowList : [],
-      denyList: updatedEmailProtection ? data.denyList : [],
     });
     setEnabled(updatedEmailProtection);
   };
 
   return (
     <div className="pb-5">
-      <LinkItem
-        title="Require email to view"
-        link="https://www.papermark.com/help/article/require-email-to-view-document"
-        enabled={enabled}
-        action={handleEnableProtection}
-        tooltipContent="Users must provide an email to access this content"
-      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between space-x-2">
+          <h2
+            className={cn(
+              "text-sm font-medium leading-6",
+              enabled ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            Require email to view
+          </h2>
+        </div>
+        <Switch checked={enabled} onCheckedChange={handleEnableProtection} />
+      </div>
     </div>
   );
 }

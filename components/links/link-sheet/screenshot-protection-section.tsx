@@ -1,24 +1,22 @@
-import { useEffect, useState } from "react";
-
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { DEFAULT_LINK_TYPE } from ".";
-import LinkItem from "./link-item";
-import { LinkUpgradeOptions } from "./link-options";
 
 export default function ScreenshotProtectionSection({
   data,
   setData,
-  isAllowed,
+  hasFreePlan,
   handleUpgradeStateChange,
 }: {
   data: DEFAULT_LINK_TYPE;
-  setData: React.Dispatch<React.SetStateAction<DEFAULT_LINK_TYPE>>;
-  isAllowed: boolean;
-  handleUpgradeStateChange: ({
-    state,
-    trigger,
-    plan,
-    highlightItem,
-  }: LinkUpgradeOptions) => void;
+  setData: Dispatch<SetStateAction<DEFAULT_LINK_TYPE>>;
+  hasFreePlan: boolean;
+  handleUpgradeStateChange: (
+    state: boolean,
+    trigger: string,
+    plan?: "Pro" | "Business",
+  ) => void;
 }) {
   const { enableScreenshotProtection } = data;
   const [enabled, setEnabled] = useState<boolean>(true);
@@ -38,23 +36,51 @@ export default function ScreenshotProtectionSection({
 
   return (
     <div className="pb-5">
-      <LinkItem
-        title="Screenshot protection"
-        tooltipContent="Prevent users from taking screenshots of your content. Limited on mobile devices."
-        link="https://www.papermark.com/screenshot-protection"
-        enabled={enabled}
-        action={handleEnableScreenshotProtection}
-        isAllowed={isAllowed}
-        requiredPlan="business"
-        upgradeAction={() =>
-          handleUpgradeStateChange({
-            state: true,
-            trigger: "link_sheet_screenshot_protection_section",
-            plan: "Business",
-            highlightItem: ["screenshot"],
-          })
-        }
-      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between space-x-2">
+          <h2
+            className={cn(
+              "text-sm font-medium leading-6",
+              enabled ? "text-foreground" : "text-muted-foreground",
+              hasFreePlan ? "cursor-pointer" : undefined,
+            )}
+            onClick={
+              hasFreePlan
+                ? () =>
+                    handleUpgradeStateChange(
+                      true,
+                      "link_sheet_screenshot_protection_section",
+                      "Business",
+                    )
+                : undefined
+            }
+          >
+            Enable screenshot protection*
+            {hasFreePlan && (
+              <span className="bg-background text-foreground ring-1 ring-gray-800 dark:ring-gray-500 rounded-full px-2 py-0.5 text-xs ml-2">
+                Business
+              </span>
+            )}
+          </h2>
+        </div>
+        <Switch
+          checked={enabled}
+          onClick={
+            hasFreePlan
+              ? () =>
+                  handleUpgradeStateChange(
+                    true,
+                    "link_sheet_screenshot_protection_section",
+                    "Business",
+                  )
+              : undefined
+          }
+          className={hasFreePlan ? "opacity-50" : undefined}
+          onCheckedChange={
+            hasFreePlan ? undefined : handleEnableScreenshotProtection
+          }
+        />
+      </div>
     </div>
   );
 }

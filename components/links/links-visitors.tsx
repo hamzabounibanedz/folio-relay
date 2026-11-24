@@ -1,14 +1,8 @@
-import Link from "next/link";
-
-import { AlertTriangleIcon } from "lucide-react";
-
-import { usePlan } from "@/lib/swr/use-billing";
-import { useLinkVisits } from "@/lib/swr/use-link";
 import { durationFormat, timeAgo } from "@/lib/utils";
-
-import { Gauge } from "@/components/ui/gauge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useLinkVisits } from "@/lib/swr/use-link";
+import { Gauge } from "@/components/ui/gauge";
 import { VisitorAvatar } from "@/components/visitors/visitor-avatar";
 
 export default function LinksVisitors({
@@ -18,51 +12,29 @@ export default function LinksVisitors({
   linkId: string;
   linkName: string;
 }) {
-  const { views, hiddenFromPause } = useLinkVisits(linkId);
-  const { isPaused } = usePlan();
+  const { views } = useLinkVisits(linkId);
 
   return (
     <>
-      {views && isPaused && hiddenFromPause > 0 && (
-        <TableRow>
-          <TableCell colSpan={5} className="text-left sm:text-center">
-            <div className="flex flex-col items-start justify-center gap-2 sm:flex-row sm:items-center">
-              <span className="flex items-center gap-x-1">
-                <AlertTriangleIcon className="inline-block h-4 w-4 text-orange-500" />
-                {hiddenFromPause} visit
-                {hiddenFromPause !== 1 ? "s" : ""} occurred while your
-                subscription was paused and{" "}
-                {hiddenFromPause !== 1 ? "are" : "is"} hidden.
-              </span>
-              <Link
-                href="/settings/billing"
-                className="font-medium text-orange-600 underline hover:text-orange-700"
-              >
-                Unpause subscription to see all visits
-              </Link>
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
       {views ? (
         views.map((view) => (
           <TableRow key={view.id}>
             <TableCell colSpan={2}>
-              <div className="flex items-center overflow-visible sm:space-x-3">
+              <div className="flex items-center sm:space-x-3 overflow-visible">
                 <VisitorAvatar
                   viewerEmail={view.viewerEmail}
-                  className="h-7 w-7 text-xs md:h-8 md:w-8 md:text-sm"
+                  className="w-7 md:w-8 h-7 md:h-8 text-xs md:text-sm"
                 />
 
-                <p className="overflow-visible text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800 dark:text-gray-200 overflow-visible">
                   {view.viewerEmail ? view.viewerEmail : "Anonymous"}
                 </p>
               </div>
             </TableCell>
 
             <TableCell>
-              <div className="flex items-center space-x-2 md:space-x-4">
-                <div className="whitespace-nowrap text-sm text-muted-foreground">
+              <div className="flex space-x-2 md:space-x-4 items-center">
+                <div className="text-sm text-muted-foreground whitespace-nowrap">
                   {durationFormat(view.totalDuration)}
                 </div>
 

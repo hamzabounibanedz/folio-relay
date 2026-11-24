@@ -1,8 +1,7 @@
 import { emptyAnalytics, jitsuAnalytics } from "@jitsu/js";
-import { posthog } from "posthog-js";
-
-import { getPostHogConfig } from "@/lib/posthog";
 import { AnalyticsEvents } from "@/lib/types";
+import { getPostHogConfig } from "@/lib/posthog";
+import { posthog } from "posthog-js";
 
 export function useAnalytics() {
   const isPostHogEnabled = getPostHogConfig();

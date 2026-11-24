@@ -1,41 +1,9 @@
-import { Metadata } from "next";
+import Form from "./form";
+import Link from "next/link";
+import { workspaceAuthConfigured } from "@/lib/workspace-auth";
 
-import RegisterClient from "./page-client";
-
-const data = {
-  description: "Signup to Papermark",
-  title: "Sign up | Papermark",
-  url: "/register",
-};
-
-export const metadata: Metadata = {
-  metadataBase: new URL("https://www.papermark.com"),
-  title: data.title,
-  description: data.description,
-  openGraph: {
-    title: data.title,
-    description: data.description,
-    url: data.url,
-    siteName: "Papermark",
-    images: [
-      {
-        url: "/_static/meta-image.png",
-        width: 800,
-        height: 600,
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: data.title,
-    description: data.description,
-    creator: "@papermarkio",
-    images: ["/_static/meta-image.png"],
-  },
-};
-
-export default function RegisterPage() {
-  return <RegisterClient />;
+export const dynamic = "force-dynamic";
+export default function WorkspaceEntry() {
+  if (workspaceAuthConfigured) return <Form />;
+  return <main className="mx-auto max-w-xl px-6 py-20"><Link className="text-lg font-semibold" href="/">Folio Relay</Link><h1 className="my-7 font-serif text-5xl">Workspace sign-in</h1><p>Private workspace sign-in is awaiting provider setup. You can read the public document now.</p><Link className="mt-6 inline-block rounded bg-[#934419] px-5 py-3 text-white" href="/view/folio-relay-example">Open public document</Link></main>;
 }

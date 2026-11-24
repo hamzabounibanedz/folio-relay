@@ -1,15 +1,11 @@
-import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth";
-
-import { hashToken } from "@/lib/api/auth/token";
-import { sendTeammateInviteEmail } from "@/lib/emails/send-teammate-invite";
-import { errorhandler } from "@/lib/errorHandler";
+import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/lib/prisma";
 import { CustomUser } from "@/lib/types";
-import { generateChecksum } from "@/lib/utils/generate-checksum";
-import { generateJWT } from "@/lib/utils/generate-jwt";
+import { errorhandler } from "@/lib/errorHandler";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { sendTeammateInviteEmail } from "@/lib/emails/send-teammate-invite";
+import { hashToken } from "@/lib/api/auth/token";
 
 export default async function handle(
   req: NextApiRequest,
@@ -29,12 +25,10 @@ export default async function handle(
 
     try {
       // check if currentUser is part of the team with the teamId
-      const userTeam = await prisma.userTeam.findUnique({
+      const userTeam = await prisma.userTeam.findFirst({
         where: {
-          userId_teamId: {
-            userId: (session.user as CustomUser).id,
-            teamId,
-          },
+          teamId,
+          userId: (session.user as CustomUser).id,
         },
       });
 
@@ -60,7 +54,7 @@ export default async function handle(
       });
 
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 168); // invitation expires in 7 days
+      expiresAt.setHours(expiresAt.getHours() + 24); // invitation expires in 24 hour
 
       // update invitation
       const invitation = await prisma.invitation.update({
@@ -104,40 +98,20 @@ export default async function handle(
       // send invite email
       const sender = session.user as CustomUser;
 
-      // invitation acceptance URL
-      const invitationUrl = `/api/teams/${teamId}/invitations/accept?token=${invitation.token}&email=${email}`;
-      const fullInvitationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${invitationUrl}`;
-
-      // magic link
-      const magicLinkParams = new URLSearchParams({
+      const params = new URLSearchParams({
+        callbackUrl: `${process.env.NEXTAUTH_URL}/api/teams/${teamId}/invitations/accept`,
         email,
         token: invitation.token,
-        callbackUrl: fullInvitationUrl,
       });
 
-      const magicLink = `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/email?${magicLinkParams.toString()}`;
-
-      const verifyParams = new URLSearchParams({
-        verification_url: magicLink,
-        email,
-        token: invitation.token,
-        teamId,
-        type: "invitation",
-        expiresAt: expiresAt.toISOString(),
-      });
-
-      const verifyParamsObject = Object.fromEntries(verifyParams.entries());
-
-      const jwtToken = generateJWT(verifyParamsObject);
-
-      const verifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/verify/invitation?token=${jwtToken}`;
+      const url = `${process.env.NEXTAUTH_URL}/api/auth/callback/email?${params}`;
 
       sendTeammateInviteEmail({
         senderName: sender.name || "",
         senderEmail: sender.email || "",
         teamName: team?.name || "",
         to: email,
-        url: verifyUrl,
+        url: url,
       });
 
       res.status(200).json("Invitation sent again!");

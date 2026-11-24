@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-
 import { receiver } from "@/lib/cron";
+import { handleDomainUpdates } from "./utils";
 import {
   getConfigResponse,
   getDomainResponse,
@@ -8,8 +8,6 @@ import {
 } from "@/lib/domains";
 import prisma from "@/lib/prisma";
 import { log } from "@/lib/utils";
-
-import { handleDomainUpdates } from "./utils";
 
 /**
  * Cron to check if domains are verified.
@@ -37,9 +35,8 @@ export async function POST(req: Request) {
     const domains = await prisma.domain.findMany({
       where: {
         slug: {
-          not: {
-            in: ["papermark.io", "papermark.com"],
-          },
+          // exclude domains that belong to us
+          notIn: ["papermark.io"],
         },
       },
       select: {
@@ -119,7 +116,7 @@ export async function POST(req: Request) {
     await log({
       message: `Domains cron failed. \n\nError: ${(error as Error).message}`,
       type: "cron",
-      mention: true,
+      mention: true
     });
     return NextResponse.json({ error: (error as Error).message });
   }

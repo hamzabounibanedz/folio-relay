@@ -1,40 +1,24 @@
-import { useState } from "react";
-import type { CSSProperties } from "react";
-
-import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
-import { motion } from "motion/react";
-
 import { STAGGER_CHILD_VARIANTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { createAdaptiveSurfacePalette } from "@/lib/utils/create-adaptive-surface-palette";
+import { motion } from "framer-motion";
+import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import { useState } from "react";
 
 export default function Question({
   feedback,
   viewId,
   submittedFeedback,
   setSubmittedFeedback,
-  isPreview,
-  accentColor,
 }: {
   feedback: { id: string; data: { question: string; type: string } };
-  viewId?: string;
+  viewId: string;
   submittedFeedback: boolean;
   setSubmittedFeedback: (submittedFeedback: boolean) => void;
-  isPreview?: boolean;
-  accentColor?: string | null;
 }) {
   const [answer, setAnswer] = useState<"yes" | "no" | "">("");
-  const palette = createAdaptiveSurfacePalette(accentColor);
 
   const handleQuestionSubmit = async (answer: string) => {
     if (answer === "") return;
-
-    // If in preview mode, skip recording the answer
-    if (isPreview) {
-      setAnswer(answer as "yes" | "no");
-      setSubmittedFeedback(true);
-      return;
-    }
 
     const response = await fetch(`/api/feedback`, {
       method: "POST",
@@ -55,7 +39,7 @@ export default function Question({
   if (submittedFeedback) {
     return (
       <motion.div
-        className="mx-5 flex h-full flex-col items-center justify-center space-y-10 text-center sm:mx-auto"
+        className="z-10 mx-5 flex flex-col items-center space-y-10 text-center sm:mx-auto"
         variants={{
           hidden: { opacity: 0, scale: 0.95 },
           show: {
@@ -75,10 +59,7 @@ export default function Question({
           variants={STAGGER_CHILD_VARIANTS}
           className="flex flex-col items-center space-y-10 text-center"
         >
-          <h1
-            className="font-display max-w-lg text-3xl font-semibold transition-colors sm:text-4xl"
-            style={{ color: palette.textColor }}
-          >
+          <h1 className="font-display max-w-lg text-3xl font-semibold transition-colors sm:text-4xl text-white">
             Thanks for your feedback!
           </h1>
         </motion.div>
@@ -88,7 +69,7 @@ export default function Question({
 
   return (
     <motion.div
-      className="flex h-full w-full flex-col items-center justify-center space-y-10 text-center"
+      className="z-10 flex flex-col items-center space-y-10 text-center w-full"
       variants={{
         hidden: { opacity: 0, scale: 0.95 },
         show: {
@@ -106,38 +87,25 @@ export default function Question({
     >
       <motion.div
         variants={STAGGER_CHILD_VARIANTS}
-        className="flex w-full flex-col items-center space-y-10 text-center"
+        className="flex flex-col items-center space-y-10 text-center w-full"
       >
-        <h1
-          className="font-display max-w-xl text-3xl font-semibold transition-colors sm:text-4xl"
-          style={{ color: palette.textColor }}
-        >
+        <h1 className="font-display max-w-xl text-3xl font-semibold transition-colors sm:text-4xl text-white">
           {feedback.data.question}
         </h1>
       </motion.div>
       <motion.div
         variants={STAGGER_CHILD_VARIANTS}
-        className="grid w-full max-w-sm grid-cols-1 divide-y rounded-md border border-border md:grid-cols-2 md:divide-x md:divide-y-0"
-        style={{
-          color: palette.textColor,
-          borderColor: palette.panelBorderColor,
-        }}
+        className="grid w-full max-w-sm grid-cols-1 divide-border text-white rounded-md border border-border md:grid-cols-2 md:divide-x md:divide-y-0 divide-y"
       >
         <button
           onClick={() => handleQuestionSubmit("yes")}
           className={cn(
-            "flex min-h-[200px] flex-col items-center justify-center space-y-5 overflow-hidden p-5 transition-colors hover:bg-[var(--feedback-hover-bg)] md:p-10",
-            answer === "yes" ? "bg-[var(--feedback-active-bg)]" : "",
+            "flex flex-col items-center justify-center overflow-hidden p-5 space-y-5 transition-colors hover:text-black hover:bg-gray-200 hover:dark:bg-gray-800 md:p-10 min-h-[200px]",
+            answer === "yes" ? "bg-gray-200 dark:bg-gray-800" : "",
           )}
-          style={
-            {
-              "--feedback-hover-bg": palette.panelHoverBgColor,
-              "--feedback-active-bg": palette.panelActiveBgColor,
-            } as CSSProperties
-          }
         >
           <ThumbsUpIcon
-            className="pointer-events-none h-auto w-12 sm:w-12"
+            className="h-auto pointer-events-none w-12 sm:w-12"
             strokeWidth={1}
           />
           <p>Yes</p>
@@ -145,18 +113,12 @@ export default function Question({
         <button
           onClick={() => handleQuestionSubmit("no")}
           className={cn(
-            "flex min-h-[200px] flex-col items-center justify-center space-y-5 overflow-hidden p-5 transition-colors hover:bg-[var(--feedback-hover-bg)] md:p-10",
-            answer === "no" ? "bg-[var(--feedback-active-bg)]" : "",
+            "flex flex-col items-center justify-center overflow-hidden p-5 space-y-5 transition-colors hover:text-black hover:bg-gray-200 hover:dark:bg-gray-800 md:p-10 min-h-[200px]",
+            answer === "no" ? "bg-gray-200 dark:bg-gray-800" : "",
           )}
-          style={
-            {
-              "--feedback-hover-bg": palette.panelHoverBgColor,
-              "--feedback-active-bg": palette.panelActiveBgColor,
-            } as CSSProperties
-          }
         >
           <ThumbsDownIcon
-            className="pointer-events-none h-auto w-12 sm:w-12"
+            className="h-auto pointer-events-none w-12 sm:w-12"
             strokeWidth={1}
           />
           <p>No</p>

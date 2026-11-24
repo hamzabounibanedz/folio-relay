@@ -1,5 +1,4 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
 import prisma from "@/lib/prisma";
 
 export default async function handler(
@@ -50,53 +49,42 @@ export default async function handler(
       const links = await prisma.link.findMany({
         where: {
           documentId: documentId,
+          domainId: null,
         },
-        select: { id: true, domainSlug: true, slug: true },
+        select: { id: true },
       });
       for (const link of links) {
-        if (link.domainSlug && link.slug) {
-          // revalidate a custom domain link
-          console.log(
-            "revalidating",
-            `/view/domains/${link.domainSlug}/${link.slug}`,
-          );
-          await res.revalidate(`/view/domains/${link.domainSlug}/${link.slug}`);
-        } else {
-          // revalidate a regular papermark link
-          console.log("revalidating document link", `/view/${link.id}`);
-          await res.revalidate(`/view/${link.id}`);
-        }
+        await res.revalidate(`/view/${link.id}`);
       }
     }
 
     if (teamId) {
-      // revalidate all links for this team (both regular and custom domain)
-      const allLinks = await prisma.link.findMany({
+      // revalidate all links for this team
+      const documentLinks = await prisma.document.findMany({
         where: {
           teamId: teamId,
-          isArchived: false,
-          deletedAt: null,
         },
         select: {
-          id: true,
-          domainSlug: true,
-          slug: true,
+          links: {
+            where: {
+              isArchived: false,
+              domainId: null,
+            },
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
-      for (const link of allLinks) {
-        if (link.domainSlug && link.slug) {
-          console.log(
-            "revalidating domain link",
-            `/view/domains/${link.domainSlug}/${link.slug}`,
-          );
-          await res.revalidate(
-            `/view/domains/${link.domainSlug}/${link.slug}`,
-          );
-        } else {
-          console.log("revalidating link", `/view/${link.id}`);
-          await res.revalidate(`/view/${link.id}`);
-        }
+      // Flatten the array of arrays into a single array
+      const flattenedLinkIds = documentLinks.flatMap(
+        (document) => document.links,
+      );
+
+      // Now linkIds is an array of only link IDs
+      for (const link of flattenedLinkIds) {
+        await res.revalidate(`/view/${link.id}`);
       }
     }
 

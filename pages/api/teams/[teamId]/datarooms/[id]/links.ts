@@ -1,14 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
 import { getServerSession } from "next-auth/next";
-
-import { enforceDataroomMemberScope } from "@/lib/api/rbac/guard";
+import { authOptions } from "../../../../auth/[...nextauth]";
+import { log } from "@/lib/utils";
+import { CustomUser } from "@/lib/types";
+import { getTeamWithUsersAndDocument } from "@/lib/team/helper";
 import { errorhandler } from "@/lib/errorHandler";
 import prisma from "@/lib/prisma";
-import { CustomUser, LinkWithViews } from "@/lib/types";
-import { decryptEncrpytedPassword, log } from "@/lib/utils";
-
-import { authOptions } from "../../../../auth/[...nextauth]";
 
 export default async function handle(
   req: NextApiRequest,
@@ -27,11 +24,6 @@ export default async function handle(
     };
 
     const userId = (session.user as CustomUser).id;
-
-    // Scoped members may only read links for their assigned rooms.
-    if (await enforceDataroomMemberScope({ userId, teamId, dataroomId, res })) {
-      return;
-    }
 
     try {
       // Check if the user is part of the team
@@ -54,11 +46,9 @@ export default async function handle(
         where: {
           dataroomId,
           linkType: "DATAROOM_LINK",
-          teamId: teamId,
-          deletedAt: null, // exclude deleted links
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: "asc",
         },
         include: {
           views: {
@@ -68,14 +58,6 @@ export default async function handle(
             orderBy: {
               viewedAt: "desc",
             },
-            take: 1,
-          },
-          customFields: true,
-          visitorGroups: {
-            select: { visitorGroupId: true },
-          },
-          dataroom: {
-            select: { brandId: true },
           },
           _count: {
             select: { views: { where: { viewType: "DATAROOM_VIEW" } } },
@@ -83,64 +65,7 @@ export default async function handle(
         },
       });
 
-      let extendedLinks: LinkWithViews[] = links as LinkWithViews[];
-      // Decrypt the password for each link
-      if (extendedLinks && extendedLinks.length > 0) {
-        extendedLinks = await Promise.all(
-          extendedLinks.map(async (link) => {
-            // Decrypt the password if it exists
-            if (link.password !== null) {
-              link.password = decryptEncrpytedPassword(link.password);
-            }
-            if (link.enableUpload) {
-              const allowedIds = Array.isArray(link.uploadFolderIds)
-                ? link.uploadFolderIds.filter(
-                    (id): id is string => typeof id === "string" && !!id,
-                  )
-                : [];
-
-              if (allowedIds.length > 0) {
-                const folders = await prisma.dataroomFolder.findMany({
-                  where: {
-                    id: { in: allowedIds },
-                    dataroomId,
-                  },
-                  select: { id: true, name: true, path: true },
-                });
-                // Preserve the admin-selected order when possible.
-                const byId = new Map(folders.map((f) => [f.id, f]));
-                link.uploadFolders = allowedIds
-                  .map((id) => byId.get(id))
-                  .filter((f): f is (typeof folders)[number] => !!f);
-              }
-            }
-            const tags = await prisma.tag.findMany({
-              where: {
-                items: {
-                  some: {
-                    linkId: link.id,
-                    itemType: "LINK_TAG",
-                  },
-                },
-              },
-              select: {
-                id: true,
-                name: true,
-                color: true,
-                description: true,
-              },
-            });
-
-            return {
-              ...link,
-              tags,
-            };
-          }),
-        );
-      }
-
-      // console.log("links", links);
-      return res.status(200).json(extendedLinks);
+      return res.status(200).json(links);
     } catch (error) {
       log({
         message: `Failed to get links for dataroom: _${dataroomId}_. \n\n ${error} \n\n*Metadata*: \`{teamId: ${teamId}, userId: ${userId}}\``,

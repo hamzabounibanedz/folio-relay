@@ -1,9 +1,11 @@
 import { useRouter } from "next/router";
-
-import { FileIcon, ServerIcon } from "lucide-react";
-import { motion } from "motion/react";
-
+import { motion } from "framer-motion";
+import {
+  File as DocumentIcon,
+  Presentation as PresentationChartBarIcon,
+} from "lucide-react";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/constants";
+import NotionIcon from "@/components/shared/icons/notion";
 
 export default function Next() {
   const router = useRouter();
@@ -33,64 +35,56 @@ export default function Next() {
           Papermark
         </p>
         <h1 className="font-display max-w-md text-3xl font-semibold transition-colors sm:text-4xl">
-          What do you want to share today?
+          Which document do you want to share today?
         </h1>
       </motion.div>
       <motion.div
         variants={STAGGER_CHILD_VARIANTS}
-        className="grid w-full max-w-2xl grid-cols-1 divide-y divide-border rounded-md border border-border text-foreground md:grid-cols-2 md:divide-x"
+        className="grid w-full grid-cols-1 divide-y divide-border text-foreground rounded-md border border-border md:grid-cols-3 md:divide-x"
       >
         <button
           onClick={() =>
             router.push({
               pathname: "/welcome",
               query: {
-                type: "select",
+                type: "pitchdeck",
               },
             })
           }
-          className="flex min-h-[120px] flex-col items-center justify-center space-y-5 overflow-hidden p-5 transition-colors hover:bg-gray-200 hover:dark:bg-gray-800 md:min-h-[200px] md:p-10"
+          className="flex flex-col items-center justify-center overflow-hidden p-5 space-y-5 transition-colors hover:bg-gray-200 hover:dark:bg-gray-800 md:p-10 min-h-[200px]"
         >
-          <FileIcon className="pointer-events-none h-auto w-12 sm:w-12" />
-          <p className="text-lg font-medium">Document</p>
-          <p className="text-sm text-muted-foreground">
-            Share a single document with page-by-page analytics
-          </p>
+          <PresentationChartBarIcon className="h-auto pointer-events-none w-12 sm:w-12" />
+          <p>Pitchdeck</p>
         </button>
         <button
           onClick={() =>
             router.push({
               pathname: "/welcome",
               query: {
-                type: "dataroom",
+                type: "document",
               },
             })
           }
-          className="flex min-h-[120px] flex-col items-center justify-center space-y-5 overflow-hidden p-5 transition-colors hover:bg-gray-200 hover:dark:bg-gray-800 md:min-h-[200px] md:p-10"
+          className="flex flex-col items-center justify-center overflow-hidden p-5 space-y-5 transition-colors hover:bg-gray-200 hover:dark:bg-gray-800 md:p-10 min-h-[200px]"
         >
-          <ServerIcon className="pointer-events-none h-auto w-12 sm:w-12" />
-          <p className="text-lg font-medium">Data Room</p>
-          <p className="text-sm text-muted-foreground">
-            Share multiple documents with folders and page-by-page analytics
-          </p>
+          <DocumentIcon className="h-auto pointer-events-none w-12 sm:w-12" />
+          <p>Another document</p>
+        </button>
+        <button
+          onClick={() =>
+            router.push({
+              pathname: "/welcome",
+              query: {
+                type: "notion",
+              },
+            })
+          }
+          className="flex flex-col items-center justify-center overflow-hidden p-5 space-y-5 transition-colors hover:bg-gray-200 hover:dark:bg-gray-800 md:p-10 min-h-[200px]"
+        >
+          <NotionIcon className="h-auto pointer-events-none w-12 sm:w-12" />
+          <p>Notion Page</p>
         </button>
       </motion.div>
-
-      {/* <motion.div variants={STAGGER_CHILD_VARIANTS} className="text-center">
-        <button
-          className="text-center text-sm text-muted-foreground underline-offset-4 transition-all hover:text-gray-800 hover:underline hover:dark:text-muted-foreground/80"
-          onClick={() =>
-            router.push({
-              pathname: "/welcome",
-              query: {
-                type: "dataroom",
-              },
-            })
-          }
-        >
-          Sharing Data Room is possible in 7 day free trial
-        </button>
-      </motion.div> */}
     </motion.div>
   );
 }

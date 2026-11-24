@@ -1,11 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth/next";
-
 import prisma from "@/lib/prisma";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { CustomUser } from "@/lib/types";
-import { folderPathSchema } from "@/lib/zod/schemas/folders";
 
 export default async function handle(
   req: NextApiRequest,
@@ -25,16 +22,6 @@ export default async function handle(
       name,
     } = req.query as { teamId: string; id: string; name: string[] };
 
-    // Validate that name is an array of strings using shared Zod schema
-    const nameValidation = folderPathSchema.safeParse(name);
-    if (!nameValidation.success) {
-      return res.status(400).json({
-        error: "Invalid folder path format",
-        details: nameValidation.error.issues.map((issue) => issue.message),
-      });
-    }
-
-    const validatedName = nameValidation.data;
     let folderNames = [];
 
     try {
@@ -54,8 +41,8 @@ export default async function handle(
         return res.status(401).end("Unauthorized");
       }
 
-      for (let i = 0; i < validatedName.length; i++) {
-        const path = "/" + validatedName.slice(0, i + 1).join("/"); // construct the materialized path
+      for (let i = 0; i < name.length; i++) {
+        const path = "/" + name.slice(0, i + 1).join("/"); // construct the materialized path
         console.log("path", path);
 
         const folder = await prisma.dataroomFolder.findUnique({
@@ -69,7 +56,6 @@ export default async function handle(
             id: true,
             parentId: true,
             name: true,
-            hierarchicalIndex: true,
           },
         });
 
@@ -77,11 +63,7 @@ export default async function handle(
           return res.status(404).end("Parent Folder not found");
         }
 
-        folderNames.push({
-          name: folder.name,
-          path: path,
-          hierarchicalIndex: folder.hierarchicalIndex,
-        });
+        folderNames.push({ name: folder.name, path: path });
       }
 
       return res.status(200).json(folderNames);

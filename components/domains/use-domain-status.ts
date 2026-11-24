@@ -1,41 +1,27 @@
-import { useTeam } from "@/context/team-context";
 import useSWR from "swr";
-import useSWRImmutable from "swr/immutable";
-
-import {
-  DomainConfigResponse,
-  DomainResponse,
-  DomainVerificationStatusProps,
-} from "@/lib/types";
 import { fetcher } from "@/lib/utils";
+import { DomainResponse, DomainVerificationStatusProps } from "@/lib/types";
+import { useTeam } from "@/context/team-context";
 
-export function useDomainStatus({
-  domain,
-  enabled = true,
-}: {
-  domain: string;
-  enabled?: boolean;
-}) {
+export function useDomainStatus({ domain }: { domain: string }) {
   const teamInfo = useTeam();
 
-  const key =
-    enabled && domain
-      ? `/api/teams/${teamInfo?.currentTeam?.id}/domains/${domain}/verify`
-      : null;
-
-  const { data, isValidating, mutate } = useSWR<{
+  const { data, isValidating } = useSWR<{
     status: DomainVerificationStatusProps;
-    response: {
-      domainJson: DomainResponse & { error: { code: string; message: string } };
-      configJson: DomainConfigResponse;
-    };
-  }>(key, fetcher);
+    domainJson: DomainResponse & { error: { code: string; message: string } };
+  }>(
+    `/api/teams/${teamInfo?.currentTeam?.id}/domains/${domain}/verify`,
+    (input, init) => fetcher(input, { ...init, cache: "no-store" }),
+    {
+      revalidateOnMount: true,
+      refreshInterval: 5000,
+      keepPreviousData: true,
+    },
+  );
 
   return {
     status: data?.status,
-    domainJson: data?.response.domainJson,
-    configJson: data?.response.configJson,
+    domainJson: data?.domainJson,
     loading: isValidating,
-    mutate,
   };
 }

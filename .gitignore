@@ -36,10 +36,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# python
-__pycache__/
-*.pyc
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -52,16 +48,6 @@ next-env.d.ts
 
 # Internal scripts
 pages/api/scripts
-scripts/*
-!scripts/generate-openapi.ts
-!scripts/mcp-smoke.mjs
-!scripts/check-tool-contracts.sh
-!scripts/check-brand-logo.ts
-!scripts/check-mcp-schema-dialect.ts
-!scripts/extend-trial.ts
-!scripts/local/
-scripts/local/.tinybird-page-views.json
-!.github/scripts/
 
 # marketing emails
 components/emails/marketing
@@ -69,16 +55,3 @@ lib/emails/marketing
 
 # vscode configs
 .vscode
-
-# trigger.dev
-.trigger
-
-# changelog and docs
-changelog
-.docs
-
-# Local sync workflow dry-run output
-_public/
-
-.opencode
-plans/

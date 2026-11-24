@@ -1,0 +1,1 @@
+export const workspaceAuthConfigured = Boolean((process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) || process.env.RESEND_API_KEY || (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET) || (process.env.HANKO_API_KEY && process.env.NEXT_PUBLIC_HANKO_TENANT_ID));

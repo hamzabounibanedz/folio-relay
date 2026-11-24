@@ -1,11 +1,6 @@
+import { usePlausible } from "next-plausible";
 import { useRouter } from "next/router";
-
-import { useState } from "react";
-
-import { useTeam } from "@/context/team-context";
-import { toast } from "sonner";
-import { mutate } from "swr";
-
+import { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,13 +10,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { toast } from "sonner";
+import { useTeam } from "@/context/team-context";
+import { mutate } from "swr";
 
 export function DeleteTeamModal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const plausible = usePlausible();
   const [teamName, setTeamName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const teamInfo = useTeam();
@@ -64,19 +62,19 @@ export function DeleteTeamModal({ children }: { children: React.ReactNode }) {
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
-        className="bg-background text-foreground"
+        className="text-foreground bg-background"
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
           <DialogTitle>Delete Team</DialogTitle>
-          <DialogDescription className="mb-1 py-2 text-sm text-muted-foreground">
+          <DialogDescription className="py-2 mb-1 text-sm text-muted-foreground">
             Warning: This will permanently delete your team, custom domain, and
             all associated documents and their respective stats.
           </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={handleDeleteTeam}
-          className="mt-4 flex flex-col gap-8"
+          className="flex flex-col gap-8 mt-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-3">

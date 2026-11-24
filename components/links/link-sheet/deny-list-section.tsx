@@ -1,38 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
-
-import { LinkPreset } from "@prisma/client";
-import { motion } from "motion/react";
-
+import {
+  Dispatch,
+  SetStateAction,
+  useState,
+  useEffect,
+  ChangeEvent,
+} from "react";
+import { Switch } from "@/components/ui/switch";
+import { motion } from "framer-motion";
 import { FADE_IN_ANIMATION_SETTINGS } from "@/lib/constants";
-import { validateList } from "@/lib/utils";
-
-import { Textarea } from "@/components/ui/textarea";
-
+import { cn, sanitizeAllowDenyList } from "@/lib/utils";
 import { DEFAULT_LINK_TYPE } from ".";
-import LinkItem from "./link-item";
-import { LinkUpgradeOptions } from "./link-options";
 
 export default function DenyListSection({
   data,
   setData,
-  isAllowed,
+  hasFreePlan,
   handleUpgradeStateChange,
-  presets,
-  setValidationError,
 }: {
   data: DEFAULT_LINK_TYPE;
-  setData: React.Dispatch<React.SetStateAction<DEFAULT_LINK_TYPE>>;
-  isAllowed: boolean;
-  handleUpgradeStateChange: ({
-    state,
-    trigger,
-    plan,
-    highlightItem,
-  }: LinkUpgradeOptions) => void;
-  presets: LinkPreset | null;
-  setValidationError?: (key: string, errors: string[]) => void;
+  setData: Dispatch<SetStateAction<DEFAULT_LINK_TYPE>>;
+  hasFreePlan: boolean;
+  handleUpgradeStateChange: (state: boolean, trigger: string) => void;
 }) {
-  const { emailProtected, denyList } = data;
+  const { emailAuthenticated, denyList } = data;
   // Initialize enabled state based on whether denyList is not null and not empty
   const [enabled, setEnabled] = useState<boolean>(
     !!denyList && denyList.length > 0,
@@ -41,42 +31,15 @@ export default function DenyListSection({
     denyList?.join("\n") || "",
   );
 
-  const validation = useMemo(
-    () => validateList(denyListInput, "both"),
-    [denyListInput],
-  );
-
   useEffect(() => {
-    if (!setValidationError) return;
-    if (enabled && emailProtected) {
-      setValidationError("denyList", validation.invalid);
-    } else {
-      setValidationError("denyList", []);
-    }
-  }, [enabled, emailProtected, validation.invalid, setValidationError]);
-
-  useEffect(() => {
-    return () => {
-      setValidationError?.("denyList", []);
-    };
-  }, [setValidationError]);
-
-  useEffect(() => {
-    if (!emailProtected && enabled) {
-      setEnabled(false);
-      setData((prevData) => ({
-        ...prevData,
-        denyList: [],
-      }));
-    }
-  }, [emailProtected, enabled, setData]);
-
-  useEffect(() => {
-    if (isAllowed && presets?.denyList && presets.denyList.length > 0) {
-      setEnabled(true);
-      setDenyListInput(presets.denyList?.join("\n") || "");
-    }
-  }, [presets, isAllowed]);
+    // Update the denyList in the data state when their inputs change
+    const newDenyList = sanitizeAllowDenyList(denyListInput);
+    setEnabled((prevEnabled) => prevEnabled && emailAuthenticated);
+    setData((prevData) => ({
+      ...prevData,
+      denyList: emailAuthenticated && enabled ? newDenyList : [],
+    }));
+  }, [denyListInput, enabled, emailAuthenticated, setData]);
 
   const handleEnableDenyList = () => {
     const updatedEnabled = !enabled;
@@ -85,7 +48,7 @@ export default function DenyListSection({
     if (updatedEnabled) {
       setData((prevData) => ({
         ...prevData,
-        denyList: updatedEnabled ? validateList(denyListInput).valid : [],
+        denyList: updatedEnabled ? sanitizeAllowDenyList(denyListInput) : [],
         emailAuthenticated: true, // Turn on email authentication
         emailProtected: true, // Turn on email protection
       }));
@@ -97,73 +60,64 @@ export default function DenyListSection({
     }
   };
 
-  const handleDenyListChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
-    const updatedDenyListInput = event.target.value;
-    setDenyListInput(updatedDenyListInput);
-
-    if (emailProtected && enabled) {
-      setData((prevData) => ({
-        ...prevData,
-        denyList: validateList(updatedDenyListInput).valid,
-      }));
-    }
+  const handleDenyListChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setDenyListInput(event.target.value);
   };
 
   return (
     <div className="pb-5">
       <div className="flex flex-col space-y-4">
-        <LinkItem
-          title="Block specified viewers"
-          tooltipContent="Prevent certain users from accessing the content. Enter blocked emails or domains."
-          enabled={enabled}
-          link="https://www.papermark.com/help/article/block-list"
-          action={handleEnableDenyList}
-          isAllowed={isAllowed}
-          requiredPlan="business"
-          upgradeAction={() =>
-            handleUpgradeStateChange({
-              state: true,
-              trigger: "link_sheet_denylist_section",
-              plan: "Business",
-              highlightItem: ["allow-block"],
-            })
-          }
-        />
-
+        <div className="flex items-center justify-between">
+          <h2
+            className={cn(
+              "text-sm font-medium leading-6",
+              enabled ? "text-foreground" : "text-muted-foreground",
+              hasFreePlan ? "cursor-pointer" : undefined,
+            )}
+            onClick={
+              hasFreePlan
+                ? () =>
+                    handleUpgradeStateChange(
+                      true,
+                      "link_sheet_denylist_section",
+                    )
+                : undefined
+            }
+          >
+            Block specified viewers
+            {hasFreePlan && (
+              <span className="bg-background text-foreground ring-1 ring-gray-800 dark:ring-gray-500 rounded-full px-2 py-0.5 text-xs ml-2">
+                Pro
+              </span>
+            )}
+          </h2>
+          <Switch
+            checked={enabled}
+            onClick={
+              hasFreePlan
+                ? () =>
+                    handleUpgradeStateChange(
+                      true,
+                      "link_sheet_denylist_section",
+                    )
+                : undefined
+            }
+            className={hasFreePlan ? "opacity-50" : undefined}
+            onCheckedChange={hasFreePlan ? undefined : handleEnableDenyList}
+          />
+        </div>
         {enabled && (
           <motion.div
             className="mt-1 block w-full"
             {...FADE_IN_ANIMATION_SETTINGS}
           >
-            <Textarea
-              className="focus:ring-inset"
+            <textarea
+              className="form-textarea w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-gray-400 text-sm leading-6"
               rows={5}
-              placeholder={`Enter blocked emails/domains separated by comma, semicolon, or new line, e.g.
-marc@papermark.com
-@example.org`}
+              placeholder="Enter blocked emails/domains, one per line, e.g.                                      marc@papermark.io                                                                             @example.org"
               value={denyListInput}
               onChange={handleDenyListChange}
-              aria-invalid={validation.invalid.length > 0}
             />
-            {validation.invalid.length > 0 ? (
-              <p className="mt-2 text-xs text-destructive">
-                The following entries are not valid emails or domains and must
-                be fixed before saving:{" "}
-                <span className="font-medium">
-                  {validation.invalid.slice(0, 5).join(", ")}
-                  {validation.invalid.length > 5
-                    ? `, and ${validation.invalid.length - 5} more`
-                    : ""}
-                </span>
-              </p>
-            ) : (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Separate multiple entries with a comma, semicolon, or new line.
-                Use <code>@example.org</code> to block a whole domain.
-              </p>
-            )}
           </motion.div>
         )}
       </div>

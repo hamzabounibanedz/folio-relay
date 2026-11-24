@@ -1,415 +1,463 @@
-import { useState } from "react";
-
+import { DataroomHeader } from "@/components/datarooms/dataroom-header";
+import AppLayout from "@/components/layouts/app";
+import { NavMenu } from "@/components/navigation-menu";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useTeam } from "@/context/team-context";
-import { AgentsSettingsCard } from "@/ee/features/ai/components/agents-settings-card";
-import { RequestListSettingsCard } from "@/ee/features/request-lists/components/request-list-settings-card";
-import { useRequestListFeatureEnabled } from "@/ee/features/request-lists/lib/use-request-list-feature";
-import { Check, CircleHelpIcon, Copy } from "lucide-react";
+import { useDataroomBrand } from "@/lib/swr/use-brand";
+import { useDataroom } from "@/lib/swr/use-dataroom";
+import { convertDataUrlToFile, uploadImage } from "@/lib/utils";
+import { PlusIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useState } from "react";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
 import { mutate } from "swr";
 
-import { useSelfMembership } from "@/lib/hooks/use-self-membership";
-import { useDataroom } from "@/lib/swr/use-dataroom";
-
-import DataroomTagSection from "@/components/datarooms/settings/dataroom-tag-section";
-import DuplicateDataroom from "@/components/datarooms/settings/duplicate-dataroom";
-import AppLayout from "@/components/layouts/app";
-import { Button } from "@/components/ui/button";
-import { BadgeTooltip } from "@/components/ui/tooltip";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-
-export default function Settings() {
-  const { dataroom } = useDataroom();
+export default function DataroomBrandPage() {
+  const router = useRouter();
   const teamInfo = useTeam();
-  const teamId = teamInfo?.currentTeam?.id;
-  const { isDataroomMember } = useSelfMembership();
-  const isRequestListEnabled = useRequestListFeatureEnabled();
-  const [isCopied, setIsCopied] = useState(false);
+  const { dataroom } = useDataroom();
+  const { brand } = useDataroomBrand({ dataroomId: dataroom?.id });
+
+  const [brandColor, setBrandColor] = useState<string>("#000000");
+  const [logo, setLogo] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const onChangeLogo = useCallback(
+    (e: any) => {
+      setFileError(null);
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size / 1024 / 1024 > 2) {
+          setFileError("File size too big (max 2MB)");
+        } else if (file.type !== "image/png" && file.type !== "image/jpeg") {
+          setFileError("File type not supported (.png or .jpg only)");
+        } else {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setLogo(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    },
+    [setLogo],
+  );
+
+  const onChangeBanner = useCallback(
+    (e: any) => {
+      setFileError(null);
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size / 1024 / 1024 > 5) {
+          setFileError("File size too big (max 5MB)");
+        } else if (file.type !== "image/png" && file.type !== "image/jpeg") {
+          setFileError("File type not supported (.png or .jpg only)");
+        } else {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setBanner(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    },
+    [setBanner],
+  );
+
+  useEffect(() => {
+    if (brand) {
+      setBrandColor(brand.brandColor || "#000000");
+      setLogo(brand.logo || null);
+      setBanner(brand.banner || null);
+    }
+  }, [brand]);
 
   if (!dataroom) {
     return <div>Loading...</div>;
   }
 
+  const saveBranding = async (e: any) => {
+    e.preventDefault();
+
+    setIsLoading(true);
+
+    // Upload the image if it's a data URL
+    let blobUrl: string | null = logo && logo.startsWith("data:") ? null : logo;
+    if (logo && logo.startsWith("data:")) {
+      // Convert the data URL to a blob
+      const blob = convertDataUrlToFile({ dataUrl: logo });
+      // Upload the blob to vercel storage
+      blobUrl = await uploadImage(blob);
+      setLogo(blobUrl);
+    }
+
+    let bannerBlobUrl: string | null =
+      banner && banner.startsWith("data:") ? null : banner;
+    if (banner && banner.startsWith("data:")) {
+      // Convert the data URL to a blob
+      const blob = convertDataUrlToFile({ dataUrl: banner });
+      // Upload the blob to vercel storage
+      bannerBlobUrl = await uploadImage(blob);
+      setBanner(blobUrl);
+    }
+
+    const data = {
+      brandColor: brandColor,
+      logo: blobUrl,
+      banner: bannerBlobUrl,
+    };
+
+    const res = await fetch(
+      `/api/teams/${teamInfo?.currentTeam?.id}/datarooms/${dataroom.id}/branding`,
+      {
+        method: brand ? "PUT" : "POST",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (res.ok) {
+      mutate(
+        `/api/teams/${teamInfo?.currentTeam?.id}/datarooms/${dataroom.id}/branding`,
+      );
+      setIsLoading(false);
+      toast.success("Branding updated successfully");
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsLoading(true);
+
+    const res = await fetch(
+      `/api/teams/${teamInfo?.currentTeam?.id}/datarooms/${dataroom.id}/branding`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (res.ok) {
+      setLogo(null);
+      setBanner(null);
+      setBrandColor("#000000");
+      setIsLoading(false);
+      toast.success("Branding reset successfully");
+      router.reload();
+    }
+  };
+
   return (
     <AppLayout>
-      <main className="relative mx-2 mb-10 mt-4 space-y-8 overflow-hidden px-1 sm:mx-3 md:mx-5 md:mt-5 lg:mx-7 lg:mt-8 xl:mx-10">
-        <div className="space-y-1">
-          <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-            Data Room Settings
-          </h3>
-          <p className="flex flex-row items-center gap-2 text-sm text-muted-foreground">
-            Configure your data room settings.
-            <BadgeTooltip
-              linkText="Learn more"
-              content="Learn about data room configuration options."
-              key="settings"
-              link="https://www.papermark.com/help/article/create-data-room"
-            >
-              <CircleHelpIcon className="h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground" />
-            </BadgeTooltip>
-          </p>
-        </div>
+      <div className="relative overflow-hidden mx-2 sm:mx-3 md:mx-5 lg:mx-7 xl:mx-10 mt-4 md:mt-5 lg:mt-8 mb-10 space-y-8 px-1">
+        <header>
+          <DataroomHeader
+            title={dataroom.name}
+            description={dataroom.pId}
+            actions={
+              [
+                // <Button onClick={() => setIsLinkSheetOpen(true)} key={1}>
+                //   Create Link
+                // </Button>,
+              ]
+            }
+          />
 
-        <div className="grid gap-6">
-            <Form
-              title="Dataroom Name"
-              description="This is the public name of your data room visible to all viewers."
-              inputAttrs={{
-                name: "name",
-                placeholder: "My Dataroom",
-                maxLength: 156,
-              }}
-              defaultValue={dataroom.name}
-              helpText="Max 156 characters"
-              handleSubmit={(updateData) =>
-                fetch(`/api/teams/${teamId}/datarooms/${dataroom.id}`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(updateData),
-                }).then(async (res) => {
-                  if (res.status === 200) {
-                    await Promise.all([
-                      mutate(`/api/teams/${teamId}/datarooms`),
-                      mutate(`/api/teams/${teamId}/datarooms?simple=true`),
-                      mutate(`/api/teams/${teamId}/datarooms/${dataroom.id}`),
-                    ]);
-                    toast.success("Successfully updated dataroom name!");
-                  } else {
-                    const { error } = await res.json();
-                    toast.error(error.message);
-                  }
-                })
-              }
-            />
-            <Form
-              title="Internal Name"
-              description="A private name only visible to you. Useful for distinguishing multiple data rooms with the same public name."
-              inputAttrs={{
-                name: "internalName",
-                placeholder: "e.g., Series A - Sequoia, Buyer Group A",
-                maxLength: 156,
-              }}
-              defaultValue={dataroom.internalName ?? ""}
-              helpText="Max 156 characters. Leave empty to remove."
-              handleSubmit={(updateData) =>
-                fetch(`/api/teams/${teamId}/datarooms/${dataroom.id}`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    internalName: updateData.internalName || null,
-                  }),
-                }).then(async (res) => {
-                  if (res.status === 200) {
-                    await Promise.all([
-                      mutate(`/api/teams/${teamId}/datarooms`),
-                      mutate(`/api/teams/${teamId}/datarooms/${dataroom.id}`),
-                    ]);
-                    toast.success("Successfully updated internal name!");
-                  } else {
-                    const { error } = await res.json();
-                    toast.error(error.message);
-                  }
-                })
-              }
-            />
-            <Form
-              title="Show Last Updated"
-              description="Display the last updated date on your dataroom banner."
-              inputAttrs={{
-                name: "showLastUpdated",
-                type: "checkbox",
-                placeholder: "Show last updated date",
-              }}
-              defaultValue={String(dataroom.showLastUpdated ?? true)}
-              helpText="When enabled, visitors will see when the dataroom was last updated."
-              handleSubmit={(updateData) =>
-                fetch(`/api/teams/${teamId}/datarooms/${dataroom.id}`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    showLastUpdated: updateData.showLastUpdated === "true",
-                  }),
-                }).then(async (res) => {
-                  if (res.status === 200) {
-                    await Promise.all([
-                      mutate(`/api/teams/${teamId}/datarooms`),
-                      mutate(`/api/teams/${teamId}/datarooms?simple=true`),
-                      mutate(`/api/teams/${teamId}/datarooms/${dataroom.id}`),
-                    ]);
-                    toast.success("Successfully updated display settings!");
-                  } else {
-                    const { error } = await res.json();
-                    toast.error(error.message);
-                  }
-                })
-              }
-            />
-            <DataroomTagSection
-              dataroomId={dataroom.id}
-              teamId={teamId!}
-              initialTags={dataroom.tags}
-            />
+          <NavMenu
+            navigation={[
+              {
+                label: "Overview",
+                href: `/datarooms/${dataroom.id}`,
+                segment: `${dataroom.id}`,
+              },
+              {
+                label: "Documents",
+                href: `/datarooms/${dataroom.id}/documents`,
+                segment: "documents",
+              },
+              {
+                label: "Users",
+                href: `/datarooms/${dataroom.id}/users`,
+                segment: "users",
+              },
+              {
+                label: "Customization",
+                href: `/datarooms/${dataroom.id}/settings`,
+                segment: "settings",
+              },
+            ]}
+          />
+        </header>
 
-            {/* AI Agents Settings */}
-            <AgentsSettingsCard
-              dataroomId={dataroom.id}
-              teamId={teamId!}
-              agentsEnabled={dataroom.agentsEnabled}
-              vectorStoreId={dataroom.vectorStoreId}
-            />
-
-            {/* Request List Settings */}
-            {isRequestListEnabled && (
-              <RequestListSettingsCard
-                dataroomId={dataroom.id}
-                teamId={teamId!}
-                requestListEnabled={dataroom.requestListEnabled}
-              />
-            )}
-
-            {!isDataroomMember && (
-              <DuplicateDataroom dataroomId={dataroom.id} teamId={teamId} />
-            )}
-            <Card className="bg-transparent">
-              <CardHeader>
-                <CardTitle>Dataroom ID</CardTitle>
-                <CardDescription>
-                  Unique ID of your dataroom on Papermark.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <div className="relative w-full max-w-md">
-                    <Input
-                      value={dataroom.id}
-                      className="pr-10 font-mono"
-                      readOnly
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => {
-                        navigator.clipboard.writeText(dataroom.id);
-                        toast.success("Dataroom ID copied to clipboard");
-                        setIsCopied(true);
-                        setTimeout(() => setIsCopied(false), 2000);
-                      }}
+        <div className="space-y-4">
+          <div>
+            <Card className="dark:bg-secondary">
+              <CardContent className="pt-6">
+                <div className="grid gap-6">
+                  {/* Logo Input */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="logo">
+                        Logo{" "}
+                        <span className="italic text-muted-foreground text-sm">
+                          (max 2 MB)
+                        </span>
+                      </Label>
+                      {fileError ? (
+                        <p className="text-sm text-red-500">{fileError}</p>
+                      ) : null}
+                    </div>
+                    <label
+                      htmlFor="image"
+                      className="group relative mt-1 flex h-[4rem] w-[12rem] cursor-pointer flex-col items-center justify-center rounded-md border border-gray-300 bg-white shadow-sm transition-all hover:bg-gray-50"
                     >
-                      {isCopied ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
+                      {false && (
+                        <div className="absolute z-[5] flex h-full w-full items-center justify-center rounded-md bg-white">
+                          <LoadingSpinner />
+                        </div>
                       )}
-                    </Button>
+                      <div
+                        className="absolute z-[5] h-full w-full rounded-md"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(true);
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(true);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(false);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(false);
+                          setFileError(null);
+                          const file =
+                            e.dataTransfer.files && e.dataTransfer.files[0];
+                          if (file) {
+                            if (file.size / 1024 / 1024 > 2) {
+                              setFileError("File size too big (max 2MB)");
+                            } else if (
+                              file.type !== "image/png" &&
+                              file.type !== "image/jpeg"
+                            ) {
+                              setFileError(
+                                "File type not supported (.png or .jpg only)",
+                              );
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                setLogo(e.target?.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }
+                        }}
+                      />
+                      <div
+                        className={`${
+                          dragActive
+                            ? "cursor-copy border-2 border-black bg-gray-50 opacity-100"
+                            : ""
+                        } absolute z-[3] flex h-full w-full flex-col items-center justify-center rounded-md bg-white transition-all ${
+                          logo
+                            ? "opacity-0 group-hover:opacity-100"
+                            : "group-hover:bg-gray-50"
+                        }`}
+                      >
+                        <PlusIcon
+                          className={`${
+                            dragActive ? "scale-110" : "scale-100"
+                          } h-7 w-7 text-gray-500 transition-all duration-75 group-hover:scale-110 group-active:scale-95`}
+                        />
+                        <span className="sr-only">OG image upload</span>
+                      </div>
+                      {logo && (
+                        <img
+                          src={logo}
+                          alt="Preview"
+                          className="h-full w-full rounded-md object-contain"
+                        />
+                      )}
+                    </label>
+                    <div className="mt-1 flex rounded-md shadow-sm">
+                      <input
+                        id="image"
+                        name="image"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="sr-only"
+                        onChange={onChangeLogo}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Banner Input */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="banner">
+                        Banner{" "}
+                        <span className="italic text-muted-foreground text-sm">
+                          (max 5 MB, min. 1920x320)
+                        </span>
+                      </Label>
+                      {fileError ? (
+                        <p className="text-sm text-red-500">{fileError}</p>
+                      ) : null}
+                    </div>
+                    <label
+                      htmlFor="banner-image"
+                      className="group relative mt-1 flex h-[4rem] w-[12rem] cursor-pointer flex-col items-center justify-center rounded-md border border-gray-300 bg-white shadow-sm transition-all hover:bg-gray-50"
+                    >
+                      {false && (
+                        <div className="absolute z-[5] flex h-full w-full items-center justify-center rounded-md bg-white">
+                          <LoadingSpinner />
+                        </div>
+                      )}
+                      <div
+                        className="absolute z-[5] h-full w-full rounded-md"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(true);
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(true);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(false);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragActive(false);
+                          setFileError(null);
+                          const file =
+                            e.dataTransfer.files && e.dataTransfer.files[0];
+                          if (file) {
+                            if (file.size / 1024 / 1024 > 5) {
+                              setFileError("File size too big (max 5MB)");
+                            } else if (
+                              file.type !== "image/png" &&
+                              file.type !== "image/jpeg"
+                            ) {
+                              setFileError(
+                                "File type not supported (.png or .jpg only)",
+                              );
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                setBanner(e.target?.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }
+                        }}
+                      />
+                      <div
+                        className={`${
+                          dragActive
+                            ? "cursor-copy border-2 border-black bg-gray-50 opacity-100"
+                            : ""
+                        } absolute z-[3] flex h-full w-full flex-col items-center justify-center rounded-md bg-white transition-all ${
+                          banner
+                            ? "opacity-0 group-hover:opacity-100"
+                            : "group-hover:bg-gray-50"
+                        }`}
+                      >
+                        <PlusIcon
+                          className={`${
+                            dragActive ? "scale-110" : "scale-100"
+                          } h-7 w-7 text-gray-500 transition-all duration-75 group-hover:scale-110 group-active:scale-95`}
+                        />
+                        <span className="sr-only">OG image upload</span>
+                      </div>
+                      {banner && (
+                        <img
+                          src={banner}
+                          alt="Preview"
+                          className="h-full w-full rounded-md object-contain"
+                        />
+                      )}
+                    </label>
+                    <div className="mt-1 flex rounded-md shadow-sm">
+                      <input
+                        id="banner-image"
+                        name="image"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="sr-only"
+                        onChange={onChangeBanner}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Brand Color Input */}
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="primary-color">Brand Color</Label>
+                    <div className="flex space-x-1">
+                      <Popover>
+                        <PopoverTrigger>
+                          <div
+                            className="w-9 h-9 rounded-md cursor-pointer ring-1 ring-muted-foreground shadow-sm hover:ring-1 hover:ring-gray-300"
+                            style={{ backgroundColor: brandColor }}
+                          />
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <HexColorPicker
+                            color={brandColor}
+                            onChange={setBrandColor}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <HexColorInput
+                        className="flex h-9 w-full rounded-md border-0 bg-background px-3 py-2 text-sm ring-1 ring-muted-foreground shadow-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-gray-300 focus:border-0"
+                        color={brandColor}
+                        onChange={setBrandColor}
+                        prefixed
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex items-center justify-between rounded-b-lg border-t bg-muted px-6 py-6">
-                <p className="text-sm text-muted-foreground transition-colors">
-                  Used to identify your dataroom when interacting with the
-                  Papermark API.
-                </p>
+              <CardFooter className="border-t p-6">
+                <Button onClick={saveBranding} loading={isLoading}>
+                  Save changes
+                </Button>
+
+                {/* delete button */}
+                <Button variant="link" onClick={handleDelete} disabled={!brand}>
+                  Reset branding
+                </Button>
               </CardFooter>
             </Card>
-
-            {/* <Card>
-                  <CardHeader className="relative">
-                    <CardTitle>Feedback Question</CardTitle>
-                    <CardDescription>
-                      This question will be shown to visitors after the last
-                      page of your document.
-                    </CardDescription>
-                    <div className="absolute right-8 top-6">
-                      <span
-                        className="relative ml-auto flex h-4 w-4"
-                        title={`Feedback is ${feedback?.enabled ? "" : "not"} active`}
-                      >
-                        <span
-                          className={cn(
-                            "absolute inline-flex h-full w-full rounded-full opacity-75",
-                            feedback?.enabled
-                              ? "animate-ping bg-green-400"
-                              : "",
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "relative inline-flex rounded-full h-4 w-4",
-                            feedback?.enabled ? "bg-green-500" : "bg-red-500",
-                          )}
-                        />
-                      </span>
-                      <span className="sr-only">
-                        {feedback?.enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-
-                      if (value == "" || isNotBusiness) return null;
-
-                      setLoading(true);
-
-                      try {
-                        const response = await fetch(
-                          `/api/teams/${teamId}/documents/${id}/feedback`,
-                          {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({ questionText: value }),
-                          },
-                        );
-
-                        if (response.status === 200) {
-                          await mutate(
-                            `/api/teams/${teamId}/documents/${id}/feedback`,
-                          );
-                          toast.success(
-                            "Successfully added a feedback question!",
-                          );
-                        } else {
-                          const { error } = await response.json();
-                          toast.error(error.message);
-                        }
-                      } catch (error) {
-                        // Handle any errors that might occur during fetch
-                        toast.error(
-                          "An error occurred while adding the question.",
-                        );
-                        console.error("Fetch error:", error);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                  >
-                    <CardContent>
-                      <div className="grid w-full items-start gap-6 overflow-x-visible pb-4 pt-0">
-                        <div className="grid gap-3">
-                          <Label>Question Type</Label>
-                          <Select defaultValue="yes-no">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a question type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="yes-no">Yes / No</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-3">
-                          <Label htmlFor="question">Question</Label>
-                          <Input
-                            id="question"
-                            type="text"
-                            name="question"
-                            required={!isNotBusiness}
-                            placeholder="Are you interested?"
-                            value={value || ""}
-                            onChange={(e) => setValue(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="border-t py-3 bg-muted rounded-b-lg justify-end gap-x-2">
-                      {feedback ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          loading={loadingStatus}
-                          onClick={async (e) => {
-                            try {
-                              e.preventDefault();
-                              setLoadingStatus(true);
-
-                              const response = await fetch(
-                                `/api/teams/${teamId}/documents/${id}/feedback`,
-                                {
-                                  method: "PUT",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify({
-                                    enabled: !feedback?.enabled,
-                                  }),
-                                },
-                              );
-
-                              if (response.status === 200) {
-                                await mutate(
-                                  `/api/teams/${teamId}/documents/${id}/feedback`,
-                                );
-                                toast.success(
-                                  `${feedback?.enabled ? "Turned off" : "Turned on"} feedback question`,
-                                );
-                              } else {
-                                const { error } = await response.json();
-                                toast.error(error.message);
-                              }
-                            } catch (error) {
-                              // Handle any errors that might occur during fetch
-                              toast.error("An error occurred.");
-                              console.error("Fetch error:", error);
-                            } finally {
-                              setLoadingStatus(false);
-                            }
-                          }}
-                        >
-                          {feedback?.enabled ? "Turn off" : "Turn on"}
-                        </Button>
-                      ) : null}
-                      {isNotBusiness ? (
-                        <UpgradePlanModal
-                          clickedPlan={"Business"}
-                          trigger={"feedback_question"}
-                        >
-                          <Button type="submit" loading={loading}>
-                            {feedback ? "Update question" : "Create question"}
-                          </Button>
-                        </UpgradePlanModal>
-                      ) : (
-                        <Button type="submit" loading={loading}>
-                          {feedback ? "Update question" : "Create question"}
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </form>
-                </Card> */}
-            {/* <Card className="border-red-500">
-              <CardHeader>
-                <CardTitle>Delete Document</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  This actions deletes the document and any associates links and
-                  analytics.
-                </p>
-              </CardContent>
-              <CardFooter className="justify-end rounded-b-lg border-t border-red-500 px-6 py-3">
-                <Button variant="destructive">Delete document</Button>
-              </CardFooter>
-            </Card> */}
+          </div>
         </div>
-      </main>
+      </div>
     </AppLayout>
   );
 }

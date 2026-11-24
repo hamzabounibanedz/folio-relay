@@ -1,13 +1,12 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { z } from "zod";
-
 import { newId } from "@/lib/id-helper";
 import { publishPageView } from "@/lib/tinybird";
-import { Geo } from "@/lib/types";
 import { capitalize, getDomainWithoutWWW, log } from "@/lib/utils";
-import { LOCALHOST_GEO_DATA, getGeoData } from "@/lib/utils/geo";
 import { userAgentFromString } from "@/lib/utils/user-agent";
+import { Geo } from "@/lib/types";
+import { LOCALHOST_GEO_DATA, getGeoData } from "@/lib/utils/geo";
+
+import { z } from "zod";
 
 const bodyValidation = z.object({
   id: z.string(),
@@ -44,6 +43,7 @@ export default async function handle(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!process.env.TINYBIRD_TOKEN) return res.status(204).end();
   // We only allow POST requests
   if (req.method !== "POST") {
     res.status(405).json({ message: "Method Not Allowed" });

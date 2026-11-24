@@ -1,20 +1,14 @@
-import { useEffect, useState } from "react";
-
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-
 import { DEFAULT_LINK_TYPE } from ".";
-import LinkItem from "./link-item";
 
 export default function AllowNotificationSection({
   data,
   setData,
-  title = "Receive email notification",
-  className = "pb-5",
 }: {
   data: DEFAULT_LINK_TYPE;
-  setData: React.Dispatch<React.SetStateAction<DEFAULT_LINK_TYPE>>;
-  title?: string;
-  className?: string;
+  setData: Dispatch<SetStateAction<DEFAULT_LINK_TYPE>>;
 }) {
   const { enableNotification } = data;
   const [enabled, setEnabled] = useState<boolean>(true);
@@ -30,14 +24,20 @@ export default function AllowNotificationSection({
   };
 
   return (
-    <div className={cn(className)}>
-      <LinkItem
-        title={title}
-        link="https://www.papermark.com/help/article/link-settings"
-        enabled={enabled}
-        action={handleEnableNotification}
-        tooltipContent="Get notified via email when someone views your content."
-      />
+    <div className="pb-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between space-x-2">
+          <h2
+            className={cn(
+              "text-sm font-medium leading-6",
+              enabled ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            Receive email notification
+          </h2>
+        </div>
+        <Switch checked={enabled} onCheckedChange={handleEnableNotification} />
+      </div>
     </div>
   );
 }

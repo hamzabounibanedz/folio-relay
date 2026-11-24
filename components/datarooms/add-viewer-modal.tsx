@@ -1,11 +1,3 @@
-import { useRouter } from "next/router";
-
-import { useState } from "react";
-
-import { useTeam } from "@/context/team-context";
-import { toast } from "sonner";
-import { mutate } from "swr";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,9 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { useTeam } from "@/context/team-context";
 import { useAnalytics } from "@/lib/analytics";
-import { usePlan } from "@/lib/swr/use-billing";
+import { useRouter } from "next/router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { mutate } from "swr";
 
 export function AddViewerModal({
   dataroomId,
@@ -38,8 +33,6 @@ export function AddViewerModal({
   const [loading, setLoading] = useState<boolean>(false);
   const teamInfo = useTeam();
   const analytics = useAnalytics();
-  const { trial } = usePlan();
-  const isTrial = !!trial;
 
   // Email validation regex pattern
   const validateEmail = (email: string) => {
@@ -95,7 +88,7 @@ export function AddViewerModal({
     // Split the current input value by commas in case of pasting multiple emails
     const potentialEmails = inputValue
       .split(",")
-      .map((email) => email.trim().toLowerCase())
+      .map((email) => email.trim())
       .filter((email) => email);
 
     const newEmails = potentialEmails.filter((email) => {
@@ -118,20 +111,6 @@ export function AddViewerModal({
     event.stopPropagation();
 
     if (emails.length === 0) return;
-
-    if (isTrial) {
-      toast.error(
-        "You are on a trial plan. You cannot send email invitations to prevent spamming.",
-      );
-      return;
-    }
-
-    if (emails.length > 5) {
-      toast.error(
-        "You can only send invitations to a maximum of 5 emails at a time.",
-      );
-      return;
-    }
 
     setLoading(true);
 
@@ -187,11 +166,11 @@ export function AddViewerModal({
           <Label htmlFor="email" className="opacity-80">
             Emails
           </Label>
-          <div className="flex flex-wrap gap-2 py-2 text-sm">
+          <div className="flex flex-wrap gap-2 py-2  text-sm">
             {emails.map((email, index) => (
               <div
                 key={index}
-                className="flex items-center gap-2 rounded bg-gray-100 px-2 py-1"
+                className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded"
               >
                 {email}
                 <button type="button" onClick={() => removeEmail(index)}>
@@ -216,7 +195,7 @@ export function AddViewerModal({
           </div>
 
           <DialogFooter>
-            <Button type="submit" className="mt-8 h-9 w-full" loading={loading}>
+            <Button type="submit" className="w-full h-9 mt-8" loading={loading}>
               {loading ? "Sending emails..." : "Add members"}
             </Button>
           </DialogFooter>

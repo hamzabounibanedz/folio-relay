@@ -1,12 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth/next";
-
-import { enforceDataroomMemberScope } from "@/lib/api/rbac/guard";
-import { errorhandler } from "@/lib/errorHandler";
 import prisma from "@/lib/prisma";
 import { CustomUser } from "@/lib/types";
+import { errorhandler } from "@/lib/errorHandler";
+import slugify from "@sindresorhus/slugify";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 export default async function handle(
   req: NextApiRequest,
@@ -16,7 +14,8 @@ export default async function handle(
     // DELETE /api/teams/:teamId/datarooms/[:id]/folders/manage
     const session = await getServerSession(req, res, authOptions);
     if (!session) {
-      return res.status(401).json({ message: "Unauthorized" });
+      res.status(401).end("Unauthorized");
+      return;
     }
 
     const {
@@ -31,39 +30,31 @@ export default async function handle(
 
     const userId = (session.user as CustomUser).id;
 
-    // Scoped members may only manage folders within their assigned rooms.
-    if (
-      await enforceDataroomMemberScope({ userId, teamId, dataroomId, res })
-    ) {
-      return;
-    }
-
     try {
-      const teamAccess = await prisma.userTeam.findUnique({
+      const team = await prisma.team.findUnique({
         where: {
-          userId_teamId: {
-            userId: userId,
-            teamId: teamId,
+          id: teamId,
+          users: {
+            some: {
+              userId: userId,
+            },
           },
-        },
-        select: {
-          role: true,
         },
       });
 
-      if (!teamAccess) {
-        return res.status(401).json({ message: "Unauthorized" });
+      if (!team) {
+        return res.status(401).end("Unauthorized");
       }
 
       const dataroom = await prisma.dataroom.findUnique({
         where: {
           id: dataroomId,
-          teamId,
+          teamId: team.id,
         },
       });
 
       if (!dataroom) {
-        return res.status(404).json({ message: "Dataroom not found" });
+        return res.status(401).end("Dataroom not found");
       }
 
       const folder = await prisma.dataroomFolder.findUnique({
@@ -71,16 +62,28 @@ export default async function handle(
           id: folderId,
           dataroomId: dataroomId,
         },
+        select: {
+          _count: {
+            select: {
+              documents: true,
+              childFolders: true,
+            },
+          },
+        },
       });
 
-      if (!folder) {
-        return res.status(404).json({
-          message: "Folder not found",
+      if (folder?._count.documents! > 0 || folder?._count.childFolders! > 0) {
+        return res.status(401).json({
+          message: "Folder contains documents or folders. Move them first",
         });
       }
 
-      // Delete the folder and its contents recursively
-      await deleteFolderAndContents(folderId);
+      await prisma.dataroomFolder.delete({
+        where: {
+          id: folderId,
+          dataroomId: dataroomId,
+        },
+      });
 
       return res.status(204).end(); // 204 No Content response for successful deletes
     } catch (error) {
@@ -89,34 +92,6 @@ export default async function handle(
   } else {
     // We only allow DELETE requests
     res.setHeader("Allow", ["DELETE"]);
-    return res
-      .status(405)
-      .json({ message: `Method ${req.method} Not Allowed` });
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
-
-async function deleteFolderAndContents(folderId: string) {
-  const childFoldersToDelete = await prisma.dataroomFolder.findMany({
-    where: {
-      parentId: folderId,
-    },
-  });
-
-  console.log("Deleting folder and contents", childFoldersToDelete);
-
-  for (const folder of childFoldersToDelete) {
-    await deleteFolderAndContents(folder.id);
-  }
-
-  await prisma.dataroomDocument.deleteMany({
-    where: {
-      folderId: folderId,
-    },
-  });
-
-  await prisma.dataroomFolder.delete({
-    where: {
-      id: folderId,
-    },
-  });
 }

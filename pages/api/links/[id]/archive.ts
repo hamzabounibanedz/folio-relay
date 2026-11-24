@@ -1,19 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { waitUntil } from "@vercel/functions";
-import { getServerSession } from "next-auth/next";
-
-import { dashboardLinkInclude } from "@/lib/api/links/dashboard-include";
-import { revalidateLinkById } from "@/lib/api/links/revalidate";
-import { errorhandler } from "@/lib/errorHandler";
 import prisma from "@/lib/prisma";
-import { CustomUser } from "@/lib/types";
-
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]";
-
-export const config = {
-  supportsResponseStreaming: true,
-};
+import { errorhandler } from "@/lib/errorHandler";
 
 export default async function handle(
   req: NextApiRequest,
@@ -28,69 +17,38 @@ export default async function handle(
 
     const { id } = req.query as { id: string };
 
-    const { isArchived, teamId } = req.body as {
-      isArchived: boolean;
-      teamId?: string;
-    };
-
-    if (!teamId) {
-      return res.status(400).json({ error: "teamId is required" });
-    }
-
-    const userId = (session.user as CustomUser).id;
+    const { isArchived } = req.body;
 
     try {
-      const teamAccess = await prisma.userTeam.findUnique({
-        where: {
-          userId_teamId: {
-            userId,
-            teamId,
+      // Update the link in the database
+      const updatedLink = await prisma.link.update({
+        where: { id: id },
+        data: {
+          isArchived: isArchived,
+        },
+        include: {
+          views: {
+            orderBy: {
+              viewedAt: "desc",
+            },
+          },
+          _count: {
+            select: { views: true },
           },
         },
       });
 
-      if (!teamAccess) {
-        return res.status(403).end("Forbidden");
-      }
-
-      const link = await prisma.link.findUnique({
-        where: { id, teamId, deletedAt: null },
-        select: {
-          linkType: true,
-          dataroom: { select: { isFrozen: true } },
-        },
-      });
-
-      if (!link) {
-        return res.status(404).json({ error: "Link not found" });
-      }
-
-      if (link.dataroom?.isFrozen) {
-        return res.status(403).json({
-          error:
-            "This data room is frozen. You cannot change link status for a frozen data room.",
-        });
-      }
-
-      const updatedLink = await prisma.link.update({
-        where: { id, teamId, deletedAt: null },
-        data: {
-          isArchived: isArchived,
-        },
-        include: dashboardLinkInclude(link.linkType),
-      });
       if (!updatedLink) {
         return res.status(404).json({ error: "Link not found" });
       }
 
-      const { tags, ...rest } = updatedLink;
-      const linkTags = tags.map((t) => t.tag);
+      await fetch(
+        `${process.env.NEXTAUTH_URL}/api/revalidate?secret=${process.env.REVALIDATE_TOKEN}&linkId=${id}&hasDomain=${updatedLink.domainId ? "true" : "false"}`,
+      );
 
-      waitUntil(revalidateLinkById(id));
-
-      return res.status(200).json({ ...rest, tags: linkTags });
+      return res.status(200).json(updatedLink);
     } catch (error) {
-      return errorhandler(error, res);
+      errorhandler(error, res);
     }
   }
 

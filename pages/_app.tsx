@@ -1,30 +1,20 @@
+import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { DM_Sans } from "next/font/google";
-import Head from "next/head";
-
-import { TeamProvider } from "@/context/team-context";
-import { UploadProgressProvider } from "@/context/upload-progress-context";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
-import { NuqsAdapter } from "nuqs/adapters/next/pages";
-
-import { EXCLUDED_PATHS } from "@/lib/constants";
-import { useTrackLastVisited } from "@/lib/hooks/use-last-visited";
-
-import { PostHogGroupSync } from "@/components/providers/posthog-group-sync";
-import { PostHogCustomProvider } from "@/components/providers/posthog-provider";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import Head from "next/head";
+import { Analytics } from "@vercel/analytics/react";
+import PlausibleProvider from "next-plausible";
+import { ThemeProvider } from "@/components/theme-provider";
+import { TeamProvider } from "@/context/team-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-import "@/styles/globals.css";
+import { PostHogCustomProvider } from "@/components/providers/posthog-provider";
+import { EXCLUDED_PATHS } from "@/lib/constants";
+import { TriggerCustomProvider } from "@/components/providers/trigger-provider";
 
 const inter = DM_Sans({ subsets: ["latin"] });
-
-function LastVisitedTracker() {
-  useTrackLastVisited();
-  return null;
-}
 
 export default function App({
   Component,
@@ -35,7 +25,7 @@ export default function App({
     <>
       <Head>
         <title>Folio Relay | Document sharing</title>
-        <meta name="theme-color" content="#000000" key="theme-color" />
+        <meta name="theme-color" content="#000000" />
         <meta
           name="description"
           content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
@@ -53,19 +43,19 @@ export default function App({
         />
         <meta
           property="og:image"
-          content="https://www.papermark.com/_static/meta-image.png"
+          content="https://www.papermark.io/_static/meta-image.png"
           key="og-image"
         />
         <meta
           property="og:url"
-          content="https://www.papermark.com"
+          content="https://www.papermark.io"
           key="og-url"
         />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@papermarkio" />
         <meta name="twitter:creator" content="@papermarkio" />
-        <meta name="twitter:title" content="Folio Relay" key="tw-title" />
+        <meta name="twitter:title" content="Papermark" key="tw-title" />
         <meta
           name="twitter:description"
           content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
@@ -73,34 +63,36 @@ export default function App({
         />
         <meta
           name="twitter:image"
-          content="https://www.papermark.com/_static/meta-image.png"
+          content="https://www.papermark.io/_static/meta-image.png"
           key="tw-image"
         />
-        <link rel="icon" href="/brand-mark.svg" key="favicon" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
       <SessionProvider session={session}>
         <PostHogCustomProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-            <NuqsAdapter>
+            <PlausibleProvider
+              domain="papermark.io"
+              enabled={process.env.NEXT_PUBLIC_VERCEL_ENV === "production"}
+            >
               <main className={inter.className}>
-                <Toaster closeButton />
+                <Toaster closeButton richColors />
                 <TooltipProvider delayDuration={100}>
                   {EXCLUDED_PATHS.includes(router.pathname) ? (
                     <Component {...pageProps} />
                   ) : (
                     <TeamProvider>
-                      <PostHogGroupSync />
-                      <LastVisitedTracker />
-                      <UploadProgressProvider>
+                      <TriggerCustomProvider>
                         <Component {...pageProps} />
-                      </UploadProgressProvider>
+                      </TriggerCustomProvider>
                     </TeamProvider>
                   )}
                 </TooltipProvider>
               </main>
-            </NuqsAdapter>
+            </PlausibleProvider>
           </ThemeProvider>
         </PostHogCustomProvider>
+        <Analytics />
       </SessionProvider>
     </>
   );

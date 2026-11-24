@@ -1,8 +1,5 @@
-import { useState } from "react";
-
 import { BarChart } from "@tremor/react";
-
-import CustomTooltip from "./bar-chart-tooltip";
+import { useState } from "react";
 import {
   type Data,
   type SumData,
@@ -10,6 +7,7 @@ import {
   getColors,
   timeFormatter,
 } from "./utils";
+import CustomTooltip from "./bar-chart-tooltip";
 
 const renameDummyDurationKey = (data: Data[]): TransformedData[] => {
   return data.reduce((acc, { pageNumber, data }) => {
@@ -24,18 +22,12 @@ const renameDummyDurationKey = (data: Data[]): TransformedData[] => {
   }, [] as TransformedData[]);
 };
 
-const renameSumDurationKey = (
-  data: SumData[],
-  versionNumber?: number,
-  documentId?: string,
-) => {
+const renameSumDurationKey = (data: SumData[]) => {
   return data.map((item) => {
     return {
       ...item,
       "Time spent per page": item.sum_duration,
       sum_duration: undefined,
-      versionNumber: versionNumber ?? 1,
-      documentId: documentId,
     };
   });
 };
@@ -68,19 +60,15 @@ export default function BarChartComponent({
   data,
   isSum = false,
   isDummy = false,
-  versionNumber,
-  documentId,
 }: {
   data: any;
   isSum?: boolean;
   isDummy?: boolean;
-  versionNumber?: number;
-  documentId?: string;
 }) {
   const [, setValue] = useState<any>(null);
 
   if (isSum) {
-    const renamedData = renameSumDurationKey(data, versionNumber, documentId);
+    const renamedData = renameSumDurationKey(data);
 
     return (
       <BarChart
@@ -93,7 +81,6 @@ export default function BarChartComponent({
         yAxisWidth={50}
         showGridLines={false}
         onValueChange={(v) => setValue(v)}
-        customTooltip={isDummy ? undefined : CustomTooltip}
       />
     );
   }

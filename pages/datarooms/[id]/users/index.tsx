@@ -1,13 +1,21 @@
-import { CircleHelpIcon } from "lucide-react";
-
-import { useDataroom } from "@/lib/swr/use-dataroom";
-
+import { AddViewerModal } from "@/components/datarooms/add-viewer-modal";
+import { DataroomHeader } from "@/components/datarooms/dataroom-header";
+import StatsCard from "@/components/datarooms/stats-card";
 import AppLayout from "@/components/layouts/app";
-import { BadgeTooltip } from "@/components/ui/tooltip";
+import LinkSheet from "@/components/links/link-sheet";
+import LinksTable from "@/components/links/links-table";
+import { NavMenu } from "@/components/navigation-menu";
+import { Button } from "@/components/ui/button";
 import DataroomViewersTable from "@/components/visitors/dataroom-viewers";
+import DataroomVisitorsTable from "@/components/visitors/dataroom-visitors-table";
+import { useDataroom, useDataroomLinks } from "@/lib/swr/use-dataroom";
+import { useState } from "react";
 
-export default function DataroomUsersPage() {
+export default function DataroomPage() {
   const { dataroom } = useDataroom();
+  const { links } = useDataroomLinks();
+
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   if (!dataroom) {
     return <div>Loading...</div>;
@@ -15,25 +23,54 @@ export default function DataroomUsersPage() {
 
   return (
     <AppLayout>
-      <div className="relative mx-2 mb-10 mt-4 space-y-8 overflow-hidden px-1 sm:mx-3 md:mx-5 md:mt-5 lg:mx-7 lg:mt-8 xl:mx-10">
-        <div className="space-y-1">
-          <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-            Visitors
-          </h3>
-          <p className="flex flex-row items-center gap-2 text-sm text-muted-foreground">
-            View and manage data room visitors.
-            <BadgeTooltip
-              linkText="Learn more"
-              content="Track who has accessed your data room."
-              key="visitors"
-              link="https://www.papermark.com/help/article/viewer-analytics"
-            >
-              <CircleHelpIcon className="h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground" />
-            </BadgeTooltip>
-          </p>
-        </div>
+      <div className="relative overflow-hidden mx-2 sm:mx-3 md:mx-5 lg:mx-7 xl:mx-10 mt-4 md:mt-5 lg:mt-8 mb-10 space-y-8 px-1">
+        <header>
+          <DataroomHeader
+            title={dataroom.name}
+            description={dataroom.pId}
+            actions={[
+              <Button onClick={() => setModalOpen(true)} key={1}>
+                Invite users
+              </Button>,
+            ]}
+          />
 
-        <DataroomViewersTable dataroomId={dataroom.id} />
+          <NavMenu
+            navigation={[
+              {
+                label: "Overview",
+                href: `/datarooms/${dataroom.id}`,
+                segment: `${dataroom.id}`,
+              },
+              {
+                label: "Documents",
+                href: `/datarooms/${dataroom.id}/documents`,
+                segment: "documents",
+              },
+              {
+                label: "Users",
+                href: `/datarooms/${dataroom.id}/users`,
+                segment: "users",
+              },
+              {
+                label: "Customization",
+                href: `/datarooms/${dataroom.id}/settings`,
+                segment: "settings",
+              },
+            ]}
+          />
+        </header>
+
+        <div className="space-y-4">
+          {/* Visitors */}
+          <DataroomViewersTable dataroomId={dataroom.id} />
+
+          <AddViewerModal
+            dataroomId={dataroom.id}
+            open={modalOpen}
+            setOpen={setModalOpen}
+          />
+        </div>
       </div>
     </AppLayout>
   );

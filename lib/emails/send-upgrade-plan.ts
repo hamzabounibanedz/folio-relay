@@ -1,30 +1,14 @@
 import { sendEmail } from "@/lib/resend";
-import { CreateUserEmailProps } from "@/lib/types";
-
 import UpgradePlanEmail from "@/components/emails/upgrade-plan";
+import { CreateUserEmailProps } from "../types";
 
-const PLAN_TYPE_MAP = {
-  pro: "Pro",
-  business: "Business",
-  datarooms: "Data Rooms",
-  "datarooms-plus": "Data Rooms Plus",
-  "datarooms-premium": "Data Rooms Premium",
-  "datarooms-unlimited": "Data Rooms Unlimited",
-};
-
-export const sendUpgradePlanEmail = async (
-  params: CreateUserEmailProps & { planType: string },
-) => {
+export const sendUpgradePlanEmail = async (params: CreateUserEmailProps) => {
   const { name, email } = params.user;
-  const { planType } = params;
-  const emailTemplate = UpgradePlanEmail({ name, planType });
-
-  const planTypeText = PLAN_TYPE_MAP[planType as keyof typeof PLAN_TYPE_MAP];
-
+  const emailTemplate = UpgradePlanEmail({ name });
   try {
     await sendEmail({
       to: email as string,
-      subject: `Thank you for upgrading to Papermark ${planTypeText}!`,
+      subject: "Thank you for upgrading to Papermark Pro!",
       react: emailTemplate,
       test: process.env.NODE_ENV === "development",
     });

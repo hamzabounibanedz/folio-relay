@@ -1,21 +1,19 @@
 import {
-  DomainConfigResponse,
   DomainResponse,
+  DomainConfigResponse,
   DomainVerificationResponse,
 } from "@/lib/types";
 
 export const addDomainToVercel = async (domain: string) => {
   return await fetch(
-    `https://api.vercel.com/v10/projects/${process.env.PROJECT_ID_VERCEL}/domains?teamId=${process.env.TEAM_ID_VERCEL}`,
+    `https://api.vercel.com/v9/projects/${process.env.PROJECT_ID_VERCEL}/domains?teamId=${process.env.TEAM_ID_VERCEL}`,
     {
-      method: "POST",
+      body: `{\n  "name": "${domain}"\n}`,
       headers: {
         Authorization: `Bearer ${process.env.AUTH_BEARER_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        name: domain.toLowerCase(),
-      }),
+      method: "POST",
     },
   ).then((res) => res.json());
 };
@@ -64,7 +62,7 @@ export const getDomainResponse = async (
   domain: string,
 ): Promise<DomainResponse & { error: { code: string; message: string } }> => {
   return await fetch(
-    `https://api.vercel.com/v9/projects/${process.env.PROJECT_ID_VERCEL}/domains/${domain.toLowerCase()}?teamId=${process.env.TEAM_ID_VERCEL}`,
+    `https://api.vercel.com/v9/projects/${process.env.PROJECT_ID_VERCEL}/domains/${domain}?teamId=${process.env.TEAM_ID_VERCEL}`,
     {
       method: "GET",
       headers: {
@@ -81,7 +79,7 @@ export const getConfigResponse = async (
   domain: string,
 ): Promise<DomainConfigResponse> => {
   return await fetch(
-    `https://api.vercel.com/v6/domains/${domain.toLowerCase()}/config?teamId=${process.env.TEAM_ID_VERCEL}`,
+    `https://api.vercel.com/v6/domains/${domain}/config?teamId=${process.env.TEAM_ID_VERCEL}`,
     {
       method: "GET",
       headers: {
@@ -96,7 +94,7 @@ export const verifyDomain = async (
   domain: string,
 ): Promise<DomainVerificationResponse> => {
   return await fetch(
-    `https://api.vercel.com/v9/projects/${process.env.PROJECT_ID_VERCEL}/domains/${domain.toLowerCase()}/verify?teamId=${process.env.TEAM_ID_VERCEL}`,
+    `https://api.vercel.com/v9/projects/${process.env.PROJECT_ID_VERCEL}/domains/${domain}/verify?teamId=${process.env.TEAM_ID_VERCEL}`,
     {
       method: "POST",
       headers: {
@@ -121,10 +119,10 @@ export const getApexDomain = (url: string) => {
   }
   const parts = domain.split(".");
   if (parts.length > 2) {
-    // if it's a subdomain (e.g. papermark.vercel.app), return the last 2 parts
+    // if it's a subdomain (e.g. dub.vercel.app), return the last 2 parts
     return parts.slice(-2).join(".");
   }
-  // if it's a normal domain (e.g. papermark.com), we return the domain
+  // if it's a normal domain (e.g. dub.sh), we return the domain
   return domain;
 };
 

@@ -1,179 +1,189 @@
-import { useRouter } from "next/router";
-
-import { useState } from "react";
-
+import useDocuments, { useRootFolders } from "@/lib/swr/use-documents";
 import { useTeam } from "@/context/team-context";
-import { ArrowUpDownIcon, CircleHelpIcon } from "lucide-react";
-
+import DocumentCard from "@/components/documents/document-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FileIcon, FolderIcon, FolderPlusIcon, PlusIcon } from "lucide-react";
+import { AddDocumentModal } from "@/components/documents/add-document-modal";
+import { Separator } from "@/components/ui/separator";
+import AppLayout from "@/components/layouts/app";
+import { Button } from "@/components/ui/button";
+import Folder from "@/components/shared/icons/folder";
+import FolderCard from "@/components/documents/folder-card";
+import { EmptyDocuments } from "@/components/documents/empty-document";
+import { AddFolderModal } from "@/components/folders/add-folder-modal";
 import {
   useDataroom,
-  useDataroomItems,
-  useDataroomSearch,
+  useDataroomDocuments,
+  useDataroomFolders,
 } from "@/lib/swr/use-dataroom";
-
-import DownloadDataroomButton from "@/components/datarooms/actions/download-dataroom";
-import GenerateIndexButton from "@/components/datarooms/actions/generate-index-button";
-import RebuildIndexButton from "@/components/datarooms/actions/rebuild-index-button";
-import { DataroomItemsList } from "@/components/datarooms/dataroom-items-list";
-import { DataroomSearchResults } from "@/components/datarooms/dataroom-search-results";
+import { DataroomHeader } from "@/components/datarooms/dataroom-header";
+import { NavMenu } from "@/components/navigation-menu";
+import { BreadcrumbComponent } from "@/components/datarooms/dataroom-breadcrumb";
+import DataroomDocumentCard from "@/components/datarooms/dataroom-document-card";
 import { SidebarFolderTree } from "@/components/datarooms/folders";
-import { DataroomSortableList } from "@/components/datarooms/sortable/sortable-list";
-import { AddDocumentDropdown } from "@/components/documents/add-document-dropdown";
-import { LoadingDocuments } from "@/components/documents/loading-document";
-import AppLayout from "@/components/layouts/app";
-import { SearchBoxPersisted } from "@/components/search-box";
-import { ResponsiveButton } from "@/components/ui/responsive-button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { BadgeTooltip } from "@/components/ui/tooltip";
 
 export default function Documents() {
-  const router = useRouter();
-  const searchQuery = (router.query.search as string) || "";
-
   const { dataroom } = useDataroom();
-  const { items, folderCount, documentCount, isLoading } = useDataroomItems({
-    root: true,
-  });
-  const {
-    documents: searchDocuments,
-    folders: searchFolders,
-    isLoading: isSearching,
-    error: searchError,
-  } = useDataroomSearch({ query: searchQuery });
-
+  const { documents } = useDataroomDocuments();
+  const { folders } = useDataroomFolders({ root: true });
   const teamInfo = useTeam();
-
-  const [isReordering, setIsReordering] = useState<boolean>(false);
-  const isSearchActive = searchQuery.trim().length > 0;
 
   return (
     <AppLayout>
-      <div className="relative mx-2 mb-10 mt-4 space-y-4 overflow-hidden px-1 sm:mx-3 md:mx-5 md:mt-5 lg:mx-7 lg:mt-8 xl:mx-10">
-        <div className="space-y-1">
-          <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-            Documents
-          </h3>
-          <p className="flex flex-row items-center gap-2 text-sm text-muted-foreground">
-            Manage files and folders in your data room.
-            <BadgeTooltip
-              linkText="Learn more"
-              content="Learn how to add and organize documents."
-              key="documents"
-              link="https://www.papermark.com/help/article/create-data-room"
-            >
-              <CircleHelpIcon className="h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground" />
-            </BadgeTooltip>
-          </p>
-        </div>
-
-        <div className="min-w-0 max-md:-mx-1 max-md:px-1">
-          <div
-            className="max-md:overflow-x-auto max-md:pb-1 max-md:[-webkit-overflow-scrolling:touch] max-md:[scrollbar-width:thin] md:overflow-visible md:pb-0"
-            role="toolbar"
-            aria-label="Data room documents actions"
-          >
-            <div className="flex w-max items-center gap-x-2 md:w-full md:justify-between">
-              <div className="flex shrink-0 items-center gap-x-2">
-                <GenerateIndexButton
-                  teamId={teamInfo?.currentTeam?.id!}
-                  dataroomId={dataroom?.id!}
-                  disabled={dataroom?.isFrozen}
-                />
-                <RebuildIndexButton
-                  teamId={teamInfo?.currentTeam?.id!}
-                  dataroomId={dataroom?.id!}
-                  disabled={dataroom?.isFrozen}
-                />
-                <DownloadDataroomButton
-                  teamId={teamInfo?.currentTeam?.id!}
-                  dataroomId={dataroom?.id!}
-                  dataroomName={dataroom?.name}
-                />
-              </div>
-              <div className="flex shrink-0 items-center gap-x-2">
-                {!dataroom?.isFrozen && (
-                  <AddDocumentDropdown
-                    isDataroom={true}
-                    dataroomId={dataroom?.id}
-                    size="sm"
+      <div className="relative overflow-hidden mx-2 sm:mx-3 md:mx-5 lg:mx-7 xl:mx-10 mt-4 md:mt-5 lg:mt-8 mb-10 space-y-8 px-1">
+        <header>
+          <DataroomHeader
+            title={dataroom?.name ?? ""}
+            description={dataroom?.pId ?? ""}
+            actions={[
+              <AddDocumentModal
+                isDataroom={true}
+                dataroomId={dataroom?.id}
+                key={1}
+              >
+                <Button
+                  className="flex-1 text-left group flex gap-x-3 items-center justify-start px-3"
+                  title="Add New Document"
+                >
+                  <PlusIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>Add New Document</span>
+                </Button>
+              </AddDocumentModal>,
+              <AddFolderModal
+                isDataroom={true}
+                dataroomId={dataroom?.id}
+                key={2}
+              >
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="bg-gray-50 dark:bg-black border-gray-500 hover:bg-gray-200 hover:dark:bg-muted"
+                >
+                  <FolderPlusIcon
+                    className="w-5 h-5 shrink-0"
+                    aria-hidden="true"
                   />
-                )}
-                <div id="dataroom-reordering-action" className="shrink-0">
-                  {!isReordering && !dataroom?.isFrozen ? (
-                    <ResponsiveButton
-                      icon={<ArrowUpDownIcon className="h-4 w-4" />}
-                      text="Reorder"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsReordering(!isReordering)}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                </Button>
+              </AddFolderModal>,
+            ]}
+          />
 
-        <div className="grid h-full gap-4 pb-2 md:grid-cols-4">
-          <div className="hidden h-full min-h-0 truncate md:col-span-1 md:block">
-            <ScrollArea showScrollbar>
-              {dataroom?.id ? (
-                <SidebarFolderTree dataroomId={dataroom.id} />
+          <NavMenu
+            navigation={[
+              {
+                label: "Overview",
+                href: `/datarooms/${dataroom?.id}`,
+                segment: `${dataroom?.id}`,
+              },
+              {
+                label: "Documents",
+                href: `/datarooms/${dataroom?.id}/documents`,
+                segment: "documents",
+              },
+              {
+                label: "Users",
+                href: `/datarooms/${dataroom?.id}/users`,
+                segment: "users",
+              },
+              {
+                label: "Customization",
+                href: `/datarooms/${dataroom?.id}/settings`,
+                segment: "settings",
+              },
+            ]}
+          />
+        </header>
+
+        <div className="grid md:grid-cols-4 gap-2">
+          <div className="md:col-span-1">
+            <SidebarFolderTree dataroomId={dataroom?.id!} />
+          </div>
+          <div className="md:col-span-3 space-y-4">
+            <BreadcrumbComponent />
+            <section className="flex items-center gap-x-2 mb-2">
+              {folders && folders.length > 0 ? (
+                <p className="text-sm text-gray-400 flex items-center gap-x-1">
+                  <FolderIcon className="w-4 h-4" />
+                  <span>{folders.length} folders</span>
+                </p>
               ) : null}
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </div>
-          <div className="min-w-0 space-y-4 md:col-span-3">
-            <SearchBoxPersisted
-              inputClassName="h-9"
-              placeholder="Search documents and folders..."
-            />
+              {documents && documents.length > 0 ? (
+                <p className="text-sm text-gray-400 flex items-center gap-x-1">
+                  <FileIcon className="w-4 h-4" />
+                  <span>{documents.length} documents</span>
+                </p>
+              ) : null}
+            </section>
+            {/* Folders list */}
+            <ul role="list" className="space-y-4">
+              {folders
+                ? folders.map((folder) => {
+                    return (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        teamInfo={teamInfo}
+                        isDataroom={true}
+                        dataroomId={dataroom?.id}
+                      />
+                    );
+                  })
+                : Array.from({ length: 3 }).map((_, i) => (
+                    <li
+                      key={i}
+                      className="relative w-full py-5 px-4 border rounded-lg flex items-center space-x-3 sm:px-6 lg:px-6"
+                    >
+                      <Skeleton key={i} className="h-9 w-9" />
+                      <div>
+                        <Skeleton key={i} className="h-4 w-32" />
+                        <Skeleton key={i + 1} className="mt-2 h-3 w-12" />
+                      </div>
+                      <Skeleton
+                        key={i + 1}
+                        className="h-5 w-20 absolute top-[50%] transform -translate-y-[50%] right-5"
+                      />
+                    </li>
+                  ))}
+            </ul>
 
-            {isSearchActive ? (
-              <>
-                {isSearching || !dataroom?.id ? (
-                  <LoadingDocuments count={3} />
-                ) : searchError ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                    <p className="text-sm text-muted-foreground">
-                      Something went wrong while searching. Please try again.
-                    </p>
-                  </div>
-                ) : (
-                  <DataroomSearchResults
-                    documents={searchDocuments}
-                    folders={searchFolders}
-                    teamInfo={teamInfo}
-                    dataroomId={dataroom.id}
-                    searchQuery={searchQuery}
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                <section id="documents-header-count" className="min-h-8" />
-
-                {isLoading || !dataroom?.id ? (
-                  <LoadingDocuments count={3} />
-                ) : isReordering ? (
-                  <DataroomSortableList
-                    mixedItems={items}
-                    teamInfo={teamInfo}
-                    dataroomId={dataroom.id}
-                    setIsReordering={setIsReordering}
-                  />
-                ) : (
-                  <DataroomItemsList
-                    mixedItems={items}
-                    teamInfo={teamInfo}
-                    dataroomId={dataroom.id}
-                    folderCount={folderCount}
-                    documentCount={documentCount}
-                  />
-                )}
-              </>
-            )}
+            {/* Documents list */}
+            <ul role="list" className="space-y-4">
+              {documents
+                ? documents.map((document) => {
+                    return (
+                      <DataroomDocumentCard
+                        key={document.id}
+                        document={document}
+                        teamInfo={teamInfo}
+                      />
+                    );
+                  })
+                : Array.from({ length: 3 }).map((_, i) => (
+                    <li
+                      key={i}
+                      className="relative w-full py-5 px-4 border rounded-lg flex items-center space-x-3 sm:px-6 lg:px-6"
+                    >
+                      <Skeleton key={i} className="h-9 w-9" />
+                      <div>
+                        <Skeleton key={i} className="h-4 w-32" />
+                        <Skeleton key={i + 1} className="mt-2 h-3 w-12" />
+                      </div>
+                      <Skeleton
+                        key={i + 1}
+                        className="h-5 w-20 absolute top-[50%] transform -translate-y-[50%] right-5"
+                      />
+                    </li>
+                  ))}
+            </ul>
           </div>
+        </div>
+
+        <div className="space-y-4">
+          {documents && documents.length === 0 && (
+            <div className="flex items-center justify-center">
+              <EmptyDocuments />
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

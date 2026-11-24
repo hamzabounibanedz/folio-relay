@@ -1,48 +1,43 @@
 import { useRouter } from "next/router";
-
-import { type FormEvent, useState } from "react";
-
-import { useTeam } from "@/context/team-context";
-import { LinkType } from "@prisma/client";
-import { motion } from "motion/react";
-import { parsePageId } from "notion-utils";
+import { motion } from "framer-motion";
+import { use, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-
-import { useAnalytics } from "@/lib/analytics";
+import Skeleton from "../Skeleton";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/constants";
 import {
   convertDataUrlToFile,
   copyToClipboard,
   uploadImage,
 } from "@/lib/utils";
-
+import { Button } from "@/components/ui/button";
+import { usePlausible } from "next-plausible";
+import { useTeam } from "@/context/team-context";
+import { Label } from "@/components/ui/label";
+import { parsePageId } from "notion-utils";
+import { LinkOptions } from "@/components/links/link-sheet/link-options";
 import {
   DEFAULT_LINK_PROPS,
   DEFAULT_LINK_TYPE,
 } from "@/components/links/link-sheet";
-import { LinkOptions } from "@/components/links/link-sheet/link-options";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-
-import Skeleton from "../Skeleton";
+import { useAnalytics } from "@/lib/analytics";
 
 export default function NotionForm() {
   const router = useRouter();
+  const plausible = usePlausible();
   const analytics = useAnalytics();
   const [uploading, setUploading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentLinkId, setCurrentLinkId] = useState<string | null>(null);
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [notionLink, setNotionLink] = useState<string | null>(null);
-  const [linkData, setLinkData] = useState<DEFAULT_LINK_TYPE>(
-    DEFAULT_LINK_PROPS(LinkType.DOCUMENT_LINK),
-  );
+  const [linkData, setLinkData] =
+    useState<DEFAULT_LINK_TYPE>(DEFAULT_LINK_PROPS);
   const teamInfo = useTeam();
 
   const createNotionFileName = () => {
@@ -89,7 +84,6 @@ export default function NotionForm() {
             url: notionLink,
             numPages: 1,
             type: "notion",
-            createLink: true,
           }),
         },
       );
@@ -99,6 +93,8 @@ export default function NotionForm() {
         const linkId = document.links[0].id;
 
         // track the event
+        plausible("documentUploaded");
+        plausible("notionDocumentUploaded");
         analytics.capture("Document Added", {
           documentId: document.id,
           name: document.name,
@@ -162,9 +158,7 @@ export default function NotionForm() {
       body: JSON.stringify({
         ...linkData,
         metaImage: blobUrl,
-        targetId: currentDocId,
-        linkType: LinkType.DOCUMENT_LINK,
-        teamId: teamInfo?.currentTeam?.id,
+        documentId: currentDocId,
       }),
     });
 
@@ -177,7 +171,7 @@ export default function NotionForm() {
     }
 
     copyToClipboard(
-      `${process.env.NEXT_PUBLIC_MARKETING_URL}/view/${currentLinkId}`,
+      `${process.env.NEXT_PUBLIC_BASE_URL}/view/${currentLinkId}`,
       "Link copied to clipboard. Redirecting to document page...",
     );
 
@@ -189,7 +183,7 @@ export default function NotionForm() {
     <>
       {!currentDocId && (
         <motion.div
-          className="z-10 -mt-10 flex flex-col space-y-10"
+          className="z-10 flex flex-col space-y-10 -mt-10"
           variants={{
             hidden: { opacity: 0, scale: 0.95 },
             show: {
@@ -227,7 +221,7 @@ export default function NotionForm() {
                     name="notion-link"
                     id="notion-link"
                     placeholder="notion.site/..."
-                    className="flex w-full rounded-md border-0 bg-background py-1.5 text-foreground shadow-sm ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-gray-400 sm:text-sm sm:leading-6"
+                    className="flex w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-gray-400 sm:text-sm sm:leading-6"
                     value={notionLink || ""}
                     onChange={(e) => setNotionLink(e.target.value)}
                   />
@@ -252,7 +246,7 @@ export default function NotionForm() {
               <span>Use our</span>{" "}
               <Button
                 variant="link"
-                className="px-0 text-xs font-normal text-muted-foreground underline hover:text-gray-700"
+                className="text-xs font-normal px-0 underline text-muted-foreground hover:text-gray-700"
                 onClick={async () => {
                   setNotionLink(
                     "https://mfts.notion.site/Papermark-7b582345016b42b6951396f6ee626121",
@@ -306,42 +300,35 @@ export default function NotionForm() {
               </main>
             )}
             {currentLinkId && currentDocId && (
-              <main className="max-h-[calc(100dvh-10rem)] min-h-[300px] overflow-y-scroll scrollbar-hide">
+              <main className="min-h-[300px]">
                 <div className="flex flex-col justify-center">
                   <div className="relative">
                     <div className="flex py-8">
-                      <div className="flex w-full max-w-xs focus-within:z-10 sm:max-w-lg">
-                        <p className="block w-full overflow-y-scroll rounded-md border-0 bg-secondary px-4 py-1.5 text-left leading-6 text-secondary-foreground md:min-w-[500px]">
-                          {`${process.env.NEXT_PUBLIC_MARKETING_URL}/view/${currentLinkId}`}
+                      <div className="flex w-full max-w-xs sm:max-w-lg focus-within:z-10">
+                        <p className="block w-full md:min-w-[500px] rounded-md px-4 text-left border-0 py-1.5 text-secondary-foreground bg-secondary leading-6 overflow-y-scroll">
+                          {`${process.env.NEXT_PUBLIC_BASE_URL}/view/${currentLinkId}`}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="w-full max-w-xs pb-8 sm:max-w-lg">
+                  <div className="w-full max-w-xs sm:max-w-lg pb-8">
                     <Accordion type="single" collapsible>
                       <AccordionItem value="item-1" className="border-none">
-                        <AccordionTrigger className="space-x-2 rounded-lg py-0">
+                        <AccordionTrigger className="py-0 rounded-lg space-x-2">
                           <span className="text-sm font-medium leading-6 text-foreground">
                             Configure Link Options
                           </span>
                         </AccordionTrigger>
                         <AccordionContent className="first:pt-5">
-                          <LinkOptions
-                            data={linkData}
-                            setData={setLinkData}
-                            linkType={LinkType.DOCUMENT_LINK}
-                          />
+                          <LinkOptions data={linkData} setData={setLinkData} />
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
                   </div>
-                  <div className="mb-4 flex items-center justify-center">
+                  <div className="flex items-center justify-center mb-4">
                     <Button loading={isLoading} onClick={handleSubmit}>
                       Share document link
                     </Button>
-                  </div>
-                  <div className="text-center text-xs text-muted-foreground">
-                    <span>You can change configurations later</span>
                   </div>
                 </div>
               </main>

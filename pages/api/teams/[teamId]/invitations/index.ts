@@ -1,11 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth";
-
-import { errorhandler } from "@/lib/errorHandler";
+import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/lib/prisma";
 import { CustomUser } from "@/lib/types";
+import { errorhandler } from "@/lib/errorHandler";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 export default async function handle(
   req: NextApiRequest,
@@ -15,19 +13,17 @@ export default async function handle(
     // GET /api/teams/:teamId/invitations
     const session = await getServerSession(req, res, authOptions);
     if (!session) {
-      return res.status(401).end("Unauthorized");
+      return res.status(401).end("Unauhorized");
     }
 
     const { teamId } = req.query as { teamId: string };
 
     try {
       // check if currentUser is part of the team with the teamId
-      const userTeam = await prisma.userTeam.findUnique({
+      const userTeam = await prisma.userTeam.findFirst({
         where: {
-          userId_teamId: {
-            userId: (session.user as CustomUser).id,
-            teamId,
-          },
+          teamId,
+          userId: (session.user as CustomUser).id,
         },
       });
 
@@ -59,7 +55,7 @@ export default async function handle(
     // DELETE /api/teams/:teamId/invitations
     const session = await getServerSession(req, res, authOptions);
     if (!session) {
-      return res.status(401).end("Unauthorized");
+      return res.status(401).end("Unauhorized");
     }
 
     const { teamId } = req.query as { teamId: string };
@@ -68,21 +64,15 @@ export default async function handle(
 
     try {
       // check if currentUser is part of the team with the teamId
-      const userTeam = await prisma.userTeam.findUnique({
+      const userTeam = await prisma.userTeam.findFirst({
         where: {
-          userId_teamId: {
-            userId: (session.user as CustomUser).id,
-            teamId,
-          },
+          teamId,
+          userId: (session.user as CustomUser).id,
         },
       });
 
       if (!userTeam) {
         return res.status(403).json("You are not part of this team");
-      }
-
-      if (userTeam.role !== "ADMIN") {
-        return res.status(403).json("Only admins can revoke invitations");
       }
 
       // delete invitation

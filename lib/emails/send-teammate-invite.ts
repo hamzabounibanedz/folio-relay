@@ -1,5 +1,4 @@
 import TeamInvitation from "@/components/emails/team-invitation";
-
 import { sendEmail } from "@/lib/resend";
 
 export const sendTeammateInviteEmail = async ({
@@ -18,7 +17,7 @@ export const sendTeammateInviteEmail = async ({
   try {
     await sendEmail({
       to: to,
-      subject: `You are invited to join team`,
+      subject: `You are invited to join a ${senderName}'s team`,
       react: TeamInvitation({
         senderName,
         senderEmail,

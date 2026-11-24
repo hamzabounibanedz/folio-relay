@@ -1,11 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getServerSession } from "next-auth/next";
-
-import { errorhandler } from "@/lib/errorHandler";
-import prisma from "@/lib/prisma";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { CustomUser } from "@/lib/types";
+import prisma from "@/lib/prisma";
+import { errorhandler } from "@/lib/errorHandler";
 
 export default async function handle(
   req: NextApiRequest,
@@ -49,49 +47,28 @@ export default async function handle(
         return res.status(403).end("Unauthorized to access this team");
       }
 
-      const [documentViews, uploadedDocumentViews] = await Promise.all([
-        prisma.view.findMany({
-          where: {
-            dataroomViewId: viewId,
-            dataroomId: dataroomId,
-            viewType: "DOCUMENT_VIEW",
-          },
-          orderBy: {
-            viewedAt: "asc",
-          },
-          select: {
-            id: true,
-            viewedAt: true,
-            downloadedAt: true,
-            downloadType: true,
-            downloadMetadata: true,
-            document: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-                versions: {
-                  where: { isPrimary: true },
-                  take: 1,
-                  select: { type: true },
-                },
-              },
+      const documentViews = await prisma.view.findMany({
+        where: {
+          dataroomViewId: viewId,
+          dataroomId: dataroomId,
+          viewType: "DOCUMENT_VIEW",
+        },
+        orderBy: {
+          viewedAt: "asc",
+        },
+        select: {
+          id: true,
+          viewedAt: true,
+          document: {
+            select: {
+              id: true,
+              name: true,
             },
           },
-        }),
-        prisma.documentUpload.findMany({
-          where: {
-            viewId: viewId,
-          },
-          select: {
-            uploadedAt: true,
-            documentId: true,
-            originalFilename: true,
-          },
-        }),
-      ]);
+        },
+      });
 
-      return res.status(200).json({ documentViews, uploadedDocumentViews });
+      return res.status(200).json(documentViews);
     } catch (error) {
       errorhandler(error, res);
     }

@@ -1,13 +1,6 @@
+import { usePlausible } from "next-plausible";
 import { useRouter } from "next/router";
-
 import { useState } from "react";
-
-import { toast } from "sonner";
-import { mutate } from "swr";
-
-import { Team } from "@/lib/types";
-
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,16 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { toast } from "sonner";
 
-interface AddTeamModalProps {
-  children: React.ReactNode;
-  setCurrentTeam: (team: Team) => void;
-}
-
-export function AddTeamModal({ children, setCurrentTeam }: AddTeamModalProps) {
+export function AddTeamModal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const plausible = usePlausible();
   const [teamName, setTeamName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -43,7 +34,7 @@ export function AddTeamModal({ children, setCurrentTeam }: AddTeamModalProps) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        team: teamName.trim(),
+        team: teamName,
       }),
     });
 
@@ -53,10 +44,7 @@ export function AddTeamModal({ children, setCurrentTeam }: AddTeamModalProps) {
       toast.error(error);
       return;
     }
-    const data = await response.json();
-    mutate("/api/teams");
-    localStorage.setItem("currentTeamId", data.id);
-    setCurrentTeam(data);
+
     toast.success("Team created successfully!");
     router.push("/documents");
     setLoading(false);
@@ -66,18 +54,18 @@ export function AddTeamModal({ children, setCurrentTeam }: AddTeamModalProps) {
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
-        className="bg-background text-foreground"
+        className="text-foreground bg-background"
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
           <DialogTitle>Create a Team</DialogTitle>
-          <DialogDescription className="mb-1 py-2 text-sm text-muted-foreground">
+          <DialogDescription className="py-2 mb-1 text-sm text-muted-foreground">
             Start by naming your new team and inviting team members.
           </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={handleCreateTeam}
-          className="mt-4 flex flex-col gap-8"
+          className="flex flex-col gap-8 mt-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-3">

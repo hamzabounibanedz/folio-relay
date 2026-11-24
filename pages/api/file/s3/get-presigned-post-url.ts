@@ -1,17 +1,16 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
-import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getS3Client } from "@/lib/files/aws-client";
 import { getServerSession } from "next-auth";
-import path from "node:path";
-
-import { ONE_HOUR, ONE_SECOND } from "@/lib/constants";
-import { getTeamS3ClientAndConfig } from "@/lib/files/aws-client";
-import { buildContentDisposition, safeSlugify } from "@/lib/utils";
-import prisma from "@/lib/prisma";
-import { CustomUser } from "@/lib/types";
-
 import { authOptions } from "../../auth/[...nextauth]";
+import { CustomUser } from "@/lib/types";
+import prisma from "@/lib/prisma";
+import path from "node:path";
+import slugify from "@sindresorhus/slugify";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { ONE_HOUR, ONE_SECOND } from "@/lib/constants";
+
+const client = getS3Client();
 
 export default async function handler(
   req: NextApiRequest,
@@ -53,30 +52,19 @@ export default async function handler(
     // Get the basename and extension for the file
     const { name, ext } = path.parse(fileName);
 
-    const slugifiedName = safeSlugify(name) + ext;
-    const originalFileName = `${name}${ext}`;
-    const key = `${team.id}/${docId}/${slugifiedName}`;
-    const contentDisposition = buildContentDisposition(
-      originalFileName,
-      slugifiedName,
-    );
-
-    const { client, config } = await getTeamS3ClientAndConfig(team.id);
+    let key = `${team.id}/${docId}/${slugify(name)}${ext}`;
 
     const putObjectCommand = new PutObjectCommand({
-      Bucket: config.bucket,
+      Bucket: process.env.NEXT_PRIVATE_UPLOAD_BUCKET,
       Key: key,
       ContentType: contentType,
-      ContentDisposition: contentDisposition,
     });
 
     const url = await getSignedUrl(client, putObjectCommand, {
       expiresIn: ONE_HOUR / ONE_SECOND,
     });
 
-    return res
-      .status(200)
-      .json({ url, key, docId, fileName: slugifiedName, contentDisposition });
+    return res.status(200).json({ url, key, docId });
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }

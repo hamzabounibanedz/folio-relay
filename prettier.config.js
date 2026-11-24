@@ -13,19 +13,4 @@ module.exports = {
   arrowParens: "always",
   endOfLine: "lf",
   proseWrap: "preserve",
-  importOrder: [
-    "^(next/(.*)$)|^(next$)",
-    "^(react/(.*)$)|^(react$)",
-    "<THIRD_PARTY_MODULES>",
-    "^@/lib/(.*)$",
-    "^@/components/(.*)$|^components/(.*)$",
-    "^[./]",
-    "^@/styles/(.*)$",
-  ],
-  importOrderSeparation: true,
-  importOrderSortSpecifiers: true,
-  plugins: [
-    "@trivago/prettier-plugin-sort-imports",
-    "prettier-plugin-tailwindcss",
-  ],
 };

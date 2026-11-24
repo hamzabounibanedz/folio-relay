@@ -4,7 +4,7 @@ export const Gauge = ({
   showValue = true,
 }: {
   value: number;
-  size: "xxs" | "xs" | "small" | "medium" | "large";
+  size: "small" | "medium" | "large";
   showValue: boolean;
 }) => {
   const circumference = 332; //2 * Math.PI * 53; // 2 * pi * radius
@@ -14,16 +14,6 @@ export const Gauge = ({
   const strokeDashoffset = initialOffset - valueInCircumference;
 
   const sizes = {
-    xxs: {
-      width: "20",
-      height: "20",
-      textSize: "text-[10px]",
-    },
-    xs: {
-      width: "24",
-      height: "24",
-      textSize: "text-[10px]",
-    },
     small: {
       width: "36",
       height: "36",
@@ -42,7 +32,7 @@ export const Gauge = ({
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center relative">
       <svg
         fill="none"
         shapeRendering="crispEdges"
@@ -50,7 +40,7 @@ export const Gauge = ({
         width={sizes[size].width}
         viewBox="0 0 120 120"
         strokeWidth="2"
-        className="-rotate-90 transform"
+        className="transform -rotate-90"
       >
         <circle
           className="text-gray-200 dark:text-gray-800"
@@ -63,7 +53,7 @@ export const Gauge = ({
           cy="60"
         />
         <circle
-          className="animate-gauge_fill text-emerald-500"
+          className="text-emerald-500 animate-gauge_fill"
           strokeWidth="12"
           strokeDasharray={strokeDasharray}
           strokeDashoffset={initialOffset}
@@ -81,7 +71,7 @@ export const Gauge = ({
         />
       </svg>
       {showValue ? (
-        <div className="absolute flex animate-gauge_fadeIn opacity-0">
+        <div className="absolute flex opacity-0 animate-gauge_fadeIn">
           <p className={`text-foreground ${sizes[size].textSize}`}>{value}</p>
         </div>
       ) : null}
