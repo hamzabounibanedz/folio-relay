@@ -1,5 +1,5 @@
 import type { AppProps } from "next/app";
-import { Inter } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import Head from "next/head";
 
 import { TeamProvider } from "@/context/team-context";
@@ -19,7 +19,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "@/styles/globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = DM_Sans({ subsets: ["latin"] });
 
 function LastVisitedTracker() {
   useTrackLastVisited();
@@ -34,21 +34,21 @@ export default function App({
   return (
     <>
       <Head>
-        <title>Papermark | The Open Source DocSend Alternative</title>
+        <title>Folio Relay | Document sharing</title>
         <meta name="theme-color" content="#000000" key="theme-color" />
         <meta
           name="description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="description"
         />
         <meta
           property="og:title"
-          content="Papermark | The Open Source DocSend Alternative"
+          content="Folio Relay | Document sharing"
           key="og-title"
         />
         <meta
           property="og:description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="og-description"
         />
         <meta
@@ -65,10 +65,10 @@ export default function App({
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@papermarkio" />
         <meta name="twitter:creator" content="@papermarkio" />
-        <meta name="twitter:title" content="Papermark" key="tw-title" />
+        <meta name="twitter:title" content="Folio Relay" key="tw-title" />
         <meta
           name="twitter:description"
-          content="Papermark is an open-source document sharing alternative to DocSend with built-in analytics."
+          content="Folio Relay is an open-source document sharing alternative to DocSend with built-in analytics."
           key="tw-description"
         />
         <meta
@@ -76,7 +76,7 @@ export default function App({
           content="https://www.papermark.com/_static/meta-image.png"
           key="tw-image"
         />
-        <link rel="icon" href="/favicon.ico" key="favicon" />
+        <link rel="icon" href="/brand-mark.svg" key="favicon" />
       </Head>
       <SessionProvider session={session}>
         <PostHogCustomProvider>
