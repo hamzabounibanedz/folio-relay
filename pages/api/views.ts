@@ -47,6 +47,9 @@ export default async function handle(
       id: linkId,
     },
     select: {
+      documentId: true,
+      expiresAt: true,
+      document: { select: { versions: { where: { isPrimary: true }, select: { id: true } } } },
       emailProtected: true,
       enableNotification: true,
       emailAuthenticated: true,
@@ -64,7 +67,7 @@ export default async function handle(
     return;
   }
 
-  if (link.isArchived) {
+  if (link.documentId !== documentId || !link.document?.versions.some((v) => v.id === documentVersionId) || link.isArchived || (link.expiresAt && link.expiresAt <= new Date())) {
     res.status(404).json({ message: "Link is no longer available." });
     return;
   }

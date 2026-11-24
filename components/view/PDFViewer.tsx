@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useTeam } from "@/context/team-context";
 import Nav from "./nav";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = "/_static/pdf.worker.min.js";
 
 export default function PDFViewer(props: any) {
   const [numPages, setNumPages] = useState<number>(0);
@@ -33,7 +33,7 @@ export default function PDFViewer(props: any) {
   }, [pageNumber]); // monitor pageNumber for changes
 
   useEffect(() => {
-    if (numPages > 0) {
+    if (numPages > 0 && teamInfo?.currentTeam?.id) {
       updateNumPages(numPages);
     }
   }, [numPages]); // monitor numPages for changes
@@ -68,6 +68,7 @@ export default function PDFViewer(props: any) {
   }
 
   const options = {
+    isEvalSupported: false,
     cMapUrl: "cmaps/",
     cMapPacked: true,
     standardFontDataUrl: "standard_fonts/",

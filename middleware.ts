@@ -1,3 +1,4 @@
+import { workspaceAuthConfigured } from "./lib/workspace-auth";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import AppMiddleware from "@/lib/middleware/app";
 import DomainMiddleware from "@/lib/middleware/domain";
@@ -16,6 +17,7 @@ function isAnalyticsPath(path: string) {
 
 export const config = {
   matcher: [
+    "/api/:path*",
     /*
      * Match all paths except for:
      * 1. /api/ routes
@@ -31,6 +33,14 @@ export const config = {
 export default async function middleware(req: NextRequest, ev: NextFetchEvent) {
   const path = req.nextUrl.pathname;
   const host = req.headers.get("host");
+
+  if (path.startsWith("/api/")) {
+    if (workspaceAuthConfigured) return NextResponse.next();
+    const publicRead = req.method === "GET" && ["/api/auth/session", "/api/links/folio-relay-example"].includes(path);
+    const publicView = req.method === "POST" && ["/api/views", "/api/record_view"].includes(path);
+    if (publicRead || publicView) return NextResponse.next();
+    return NextResponse.json({ error: "Private workspace is not configured" }, { status: 403 });
+  }
 
   if (isAnalyticsPath(path)) {
     return PostHogMiddleware(req);

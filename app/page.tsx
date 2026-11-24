@@ -15,7 +15,7 @@ export default function Home() {
         </div>
         <article className="border border-[#c9c0af] bg-[#fffdf8] p-8 shadow-sm"><p className="mb-8 border-b border-[#c9c0af] pb-4 text-sm">From the Papermark collection</p>
           <h2 className="font-serif text-4xl">Example document</h2><p className="my-4 text-[#615b4f]">Read the sample PDF included with the open-source release.</p>
-          <a className="font-medium text-[#873c18] underline underline-offset-4" href="/_example/papermark-example-document.pdf">Open PDF</a>
+          <a className="font-medium text-[#873c18] underline underline-offset-4" href="/view/folio-relay-example">Open document</a>
         </article>
       </main>
       <footer className="mx-auto max-w-6xl border-t border-[#c9c0af] px-6 py-5 text-sm">Built on Papermark · <a className="underline" href="https://github.com/hamzabounibanedz/folio-relay/tree/codex/papermark-community">Source code</a></footer>

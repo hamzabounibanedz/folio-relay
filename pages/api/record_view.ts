@@ -43,6 +43,7 @@ export default async function handle(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!process.env.TINYBIRD_TOKEN) return res.status(204).end();
   // We only allow POST requests
   if (req.method !== "POST") {
     res.status(405).json({ message: "Method Not Allowed" });

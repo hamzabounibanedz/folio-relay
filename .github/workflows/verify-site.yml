@@ -30,5 +30,8 @@ jobs:
       - name: Test the public site and protected workspace
         run: |
           npm start > "$RUNNER_TEMP/folio.log" 2>&1 &
-          curl -fsS --retry 15 --retry-connrefused http://localhost:3000/ | grep -q 'Documents worth sharing'
-          curl -fsSL http://localhost:3000/documents | grep -qi 'sign in'
+          curl -fsS --retry 15 --retry-connrefused http://localhost:3000/ -o /tmp/folio-home.html
+          grep -q 'Documents worth sharing' /tmp/folio-home.html
+          curl -fsSL http://localhost:3000/documents -o /tmp/folio-workspace.html
+          grep -qi 'Workspace sign-in' /tmp/folio-workspace.html
+          curl -fsS http://localhost:3000/api/links/folio-relay-example | jq -e '.link.id == "folio-relay-example"'

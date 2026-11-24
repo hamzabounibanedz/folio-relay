@@ -7,11 +7,11 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/prepare-pdf-worker.cjs && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "prisma migrate deploy && node scripts/seed-example.cjs && npm run build",
     "email": "email dev --dir ./components/emails --port 3001",
     "trigger:dev": "npx @trigger.dev/cli@latest dev",
     "stripe:webhook": "pkgx stripe listen --forward-to localhost:3000/api/stripe/webhook"
@@ -84,6 +84,7 @@
     "next-mdx-remote": "^4.4.1",
     "next-plausible": "^3.12.0",
     "next-themes": "^0.3.0",
+    "nodemailer": "7.0.13",
     "notion-client": "^6.16.0",
     "notion-utils": "^6.16.0",
     "openai": "^4.20.0",
